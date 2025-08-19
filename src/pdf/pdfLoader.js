@@ -1,18 +1,21 @@
 /**
  * pdfLoader.js
- * Purpose: wrap PDF.js to open a PDF file
+ * Purpose: Configure PDF.js and load a PDF document from a File object.
+ * Why: Keeps all PDF.js specifics contained.
  */
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 
-// Create a module worker from /public
+// Use a module worker we placed in /public (modern + Vite-friendly)
 const worker = new Worker("/pdf.worker.min.mjs", { type: "module" });
-
-// Tell PDF.js to use this worker port
 pdfjsLib.GlobalWorkerOptions.workerPort = worker;
 
-// Load a PDF chosen by the user
+/**
+ * loadPDF(file: File) -> Promise<pdfDoc>
+ * Creates a blob URL for the selected file and asks PDF.js to load it.
+ */
 export async function loadPDF(file) {
   const url = URL.createObjectURL(file);
   console.log("Loading PDF:", file.name);
   return await pdfjsLib.getDocument(url).promise;
 }
+

@@ -1,8 +1,9 @@
 /**
  * uiHandlers.js
- * Purpose: handle user input (file chooser)
+ * Purpose: Handle user-facing input elements (file chooser, later: toggles).
+ * Why: Decouples DOM inputs from app logic.
  */
-export function setupFileInput(callback) {
+export function setupFileInput(onFileSelected) {
   const input = document.getElementById("fileInput");
   if (!input) {
     console.error("fileInput element not found in index.html");
@@ -12,7 +13,8 @@ export function setupFileInput(callback) {
     const file = e.target.files && e.target.files[0];
     if (file) {
       console.log("User selected file:", file.name);
-      callback(file);
+      onFileSelected(file);
     }
   });
 }
+
