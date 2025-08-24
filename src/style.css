@@ -1,12 +1,19 @@
-/* ---------- Page layout ---------- */
+/* ---------- Theme & base ---------- */
 :root {
   --bg: #0f172a;       /* slate-900 */
   --fg: #e2e8f0;       /* slate-200 */
   --muted: #94a3b8;    /* slate-400 */
   --accent: #60a5fa;   /* blue-400 */
+
   --note-bg: #fff8c6;
   --note-border: #e6d36f;
+
   --hi-bg: rgba(255, 235, 59, 0.45);
+  --hi-preview: rgba(255, 235, 59, 0.25);
+  --panel: #111827;
+  --panel-border: #1f2937;
+  --btn-bg: #0b1220;
+  --btn-border: #334155;
 }
 
 * { box-sizing: border-box; }
@@ -31,19 +38,19 @@ main {
   gap: 8px;
   flex-wrap: wrap;
   padding: 10px 12px;
-  border: 1px solid #1f2937;
+  border: 1px solid var(--panel-border);
   border-radius: 12px;
-  background: #111827;
+  background: var(--panel);
   margin: 12px 0;
 }
-
 #toolbar button {
-  border: 1px solid #334155;
-  background: #0b1220;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
   color: var(--fg);
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
 }
 #toolbar button:hover { border-color: var(--accent); }
 #toolbar button.active {
@@ -51,34 +58,44 @@ main {
   color: #0b1220;
   border-color: var(--accent);
 }
+#toolbar button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 #toolbar span { color: var(--muted); }
 
 /* ---------- Viewer ---------- */
 #viewer {
   position: relative;           /* host absolute overlay */
   display: inline-block;
-  border: 1px solid #1f2937;
+  border: 1px solid var(--panel-border);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: hidden;             /* clip overlay edges */
   background: #0b1022;
+  max-width: 100%;
+  max-height: calc(100vh - 200px); /* make tall pages scrollable */
+}
+.viewer-scroll {
+  overflow: auto;               /* optional: wrap #viewer in a scrollable div */
 }
 
 #pdfCanvas {
-  display: block;               /* remove inline-gap */
+  display: block;
   position: relative;
   z-index: 1;                   /* below overlay */
   max-width: 100%;
+  height: auto;
 }
 
 /* Overlay sits above canvas and accepts input */
 #annoLayer {
   position: absolute;
-  left: 0; top: 0;
+  inset: 0;                     /* left:0; top:0; right:0; bottom:0 */
   z-index: 2;
   pointer-events: auto;
 }
 
-/* Cursor by tool */
+/* Cursor by tool (use data-tool attribute) */
 #annoLayer[data-tool="highlight"] { cursor: crosshair; }
 #annoLayer[data-tool="note"]      { cursor: copy; }
 #annoLayer:not([data-tool])       { cursor: default; }
@@ -87,41 +104,47 @@ main {
 /* Highlight rectangles */
 .highlight-box {
   position: absolute;
-  background: yellow;
-  opacity: 0.4;
+  background: var(--hi-bg);
+  border-radius: 2px;
   pointer-events: none;
 }
 .highlight-preview {
   border: 2px dashed orange;
-  background: rgba(255, 255, 0, 0.2);
+  background: var(--hi-preview);
 }
 
 /* Sticky note */
 .sticky-note {
   position: absolute;
-  width: 120px;
-  background: #fffa8b;
-  border: 1px solid #999;
-  font-size: 12px;
-  box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+  width: 160px;
+  min-height: 64px;
+  background: var(--note-bg);
+  border: 1px solid var(--note-border);
+  color: #222;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  border-radius: 6px;
 }
 
 /* Note header: drag handle area */
 .note-header {
-  background: #f2e85c;
+  background: rgba(0,0,0,0.06);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
   padding: 2px 4px;
+  height: 22px;
   cursor: move;
-  font-weight: bold;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: flex-end;
 }
 
 /* Body is editable text */
 .note-body {
-  padding: 4px;
-  min-height: 40px;
+  padding: 8px 28px 8px 8px;
+  min-height: 42px;
   outline: none;
+  white-space: pre-wrap;
+  line-height: 1.3;
+  font-size: 14px;
 }
 
 /* Close button */
@@ -129,18 +152,11 @@ main {
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 1;
+  color: #333;
 }
+.note-close-btn:hover { color: #000; }
 
-#overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-.highlight {
-  position: absolute;
-  background: yellow;
-  opacity: 0.4;
-  pointer-events: none;
-}
-
+/* ---------- Utilities (optional) ---------- */
+.hidden { display: none !important; }

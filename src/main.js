@@ -6,6 +6,7 @@ import { createToolbar } from "@ui/toolbar";
 import { setupFileInput } from "@ui/uiHandlers";
 import { openFile, handlers } from "@app/controller";
 import { initHighlightDrag, initNotePlacement } from "@ui/overlay";
+import "./style.css";
 
 // Build toolbar and wire handlers
 createToolbar("toolbar", handlers);
