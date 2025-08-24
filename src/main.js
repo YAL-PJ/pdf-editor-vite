@@ -1,14 +1,18 @@
 /**
- * main.js — Bootstraps the app: build toolbar, wire input, register handlers.
- * Why: Keeps startup logic concise and readable.
+ * main.js
+ * Bootstraps the app: toolbar, file input, and annotation tools.
  */
 import { createToolbar } from "@ui/toolbar";
 import { setupFileInput } from "@ui/uiHandlers";
 import { openFile, handlers } from "@app/controller";
+import { initHighlightDrag, initNotePlacement } from "@ui/overlay";
 
-// Build toolbar and wire its buttons to controller logic
+// Build toolbar and wire handlers
 createToolbar("toolbar", handlers);
 
-// File input: when a user selects a PDF, open it
+// File input: load PDF into controller
 setupFileInput(openFile);
 
+// Init overlay tools (highlight + sticky notes)
+initHighlightDrag();
+initNotePlacement();

@@ -1,10 +1,19 @@
 /**
  * state.js
- * Purpose: Hold app state in one place—easy to inspect/modify.
+ * Centralized app state
  */
 export const state = {
-  pdfDoc: null,   // PDF.js document handle
-  pageNum: 1,     // current page
-  scale: 1.0,     // zoom factor (1.0 = 100%)
-};
+  pdfDoc: null,
+  pageNum: 1,
+  scale: 1.0,
 
+  // Current tool ("highlight" | "note" | null)
+  tool: null,
+
+  // Per-page annotations in normalized coords
+  // { 1: [ { type: 'highlight', rect:[x,y,w,h] }, ... ] }
+  annotations: {},
+
+  // Per-page PDF.js viewports
+  viewports: {},
+};

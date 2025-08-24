@@ -1,7 +1,5 @@
 /**
  * toolbar.js
- * Purpose: Build the toolbar UI and wire button events via passed-in handlers.
- * Why: Keeps DOM creation + event binding in one place.
  */
 export function createToolbar(containerId, handlers) {
   const el = document.getElementById(containerId);
@@ -16,22 +14,52 @@ export function createToolbar(containerId, handlers) {
     <button id="zoomIn">+</button>
     &nbsp;|&nbsp;
     <button id="nextPage">Next ▶</button>
+    &nbsp;|&nbsp;
+    <button id="toolSelect">↖ Select</button>
+    <button id="toolHighlight">🖍 Highlight</button>
+    <button id="toolNote">📝 Note</button>
   `;
 
-  // Bind events to external logic (controller handlers)
+  // tool wiring
+document.getElementById("toolSelect").addEventListener("click", () => handlers.onToolChange(null));
+document.getElementById("toolHighlight").addEventListener("click", () => handlers.onToolChange("highlight"));
+document.getElementById("toolNote").addEventListener("click", () => handlers.onToolChange("note"));
+
+  // Navigation & zoom
   document.getElementById("prevPage").addEventListener("click", handlers.onPrev);
   document.getElementById("nextPage").addEventListener("click", handlers.onNext);
   document.getElementById("zoomIn").addEventListener("click", handlers.onZoomIn);
   document.getElementById("zoomOut").addEventListener("click", handlers.onZoomOut);
+
+  // Tools
+  document.getElementById("toolHighlight")
+    .addEventListener("click", () => handlers.onToolChange("highlight"));
+  document.getElementById("toolNote")
+    .addEventListener("click", () => handlers.onToolChange("note"));
 }
 
-/**
- * ui
- * Purpose: Provide references to toolbar elements so controller can update them.
- */
 export const ui = {
   pageNumEl:   () => document.getElementById("pageNum"),
   pageCountEl: () => document.getElementById("pageCount"),
   zoomLevelEl: () => document.getElementById("zoomLevel"),
 };
 
+export function setToolbarEnabled(enabled) {
+  ["prevPage","nextPage","zoomIn","zoomOut","toolHighlight","toolNote"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !enabled;
+  });
+}
+
+export function setActiveToolButton(tool) {
+  const ids = ["toolSelect","toolHighlight","toolNote"];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isActive =
+      (tool === null && id === "toolSelect") ||
+      (tool === "highlight" && id === "toolHighlight") ||
+      (tool === "note" && id === "toolNote");
+    el.classList.toggle("active", isActive);
+  });
+}
