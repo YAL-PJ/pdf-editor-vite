@@ -8,19 +8,21 @@
   <body>
     <h1>PDF Viewer</h1>
 
-    <!-- File input lives in HTML so users can select a PDF -->
+    <!-- File input with accessibility label -->
+    <label for="fileInput">Select PDF file:</label>
     <input type="file" id="fileInput" accept="application/pdf" />
 
     <!-- Toolbar is built by JS into this div -->
     <div id="toolbar"></div>
-    
-    <div id="viewer">
-        <!-- Canvas is where pages are rendered -->
-        <canvas id="pdfCanvas"></canvas>
-        <!-- Annotation overlay sits above the canvas -->
-        <div id="annoLayer" style="position:relative;"></div>
+    <div class="viewer-scroll">
+        <!-- PDF viewer container with proper positioning -->
+        <div id="viewer" style="position: relative; display: inline-block;">
+            <!-- Canvas is where pages are rendered -->
+            <canvas id="pdfCanvas"></canvas>
+            <!-- Annotation overlay sits above the canvas -->
+            <div id="annoLayer" style="position: absolute; top: 0; left: 0; pointer-events: none;"></div>
+        </div>
     </div>
-
     
     <script type="module" src="/src/main.js"></script>
   </body>
