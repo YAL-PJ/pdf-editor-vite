@@ -15,5 +15,8 @@ export function createToolbarHTML() {
     <button id="toolSelect">↖ Select</button>
     <button id="toolHighlight">🖍 Highlight</button>
     <button id="toolNote">📝 Note</button>
+    <button id="toolText">✒ Text</button>
+    <button id="toolImage">🖼 Image</button>
+    <input id="imagePicker" type="file" accept="image/*" style="display:none" />
   `;
 }

@@ -21,7 +21,25 @@ export function attachToolbarEvents(handlers) {
   const selectBtn = document.getElementById("toolSelect");
   const highlightBtn = document.getElementById("toolHighlight");
   const noteBtn = document.getElementById("toolNote");
+  const textBtn      = document.getElementById("toolText");
+  const imageBtn     = document.getElementById("toolImage");
+
+
   if (selectBtn)   selectBtn.addEventListener("click", () => safe(handlers.onToolChange)(null));
   if (highlightBtn)highlightBtn.addEventListener("click", () => safe(handlers.onToolChange)("highlight"));
   if (noteBtn)     noteBtn.addEventListener("click", () => safe(handlers.onToolChange)("note"));
+  if (textBtn)      textBtn.addEventListener("click", () => safe(handlers.onToolChange)("text"));
+  if (imageBtn)     imageBtn.addEventListener("click", () => safe(handlers.onPickImage && handlers.onPickImage()));
+  
+
+  // wire image file input (handler provided by controller later)
+  const picker = document.getElementById("imagePicker");
+  if (picker && handlers.onImageSelected) {
+    picker.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (file) safe(handlers.onImageSelected)(file);
+      e.target.value = ""; // allow picking the same file again
+    });
+  }
+
 }

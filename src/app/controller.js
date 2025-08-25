@@ -70,8 +70,26 @@ export const handlers = {
     await rerender();
   },
   onToolChange: (tool) => {
-    state.tool = tool;                   // "highlight" | "note" | null
+    state.tool = tool;                   // null | 'highlight' | 'note' | 'text' | 'image'
     setActiveToolButton(tool);           // visual state
     setOverlayCursor(tool);              // cursor feedback
+  },
+    
+  
+  // Open the hidden file input
+  onPickImage: () => {
+    const picker = document.getElementById("imagePicker");
+    if (picker) picker.click();
+  },
+
+  
+  // Receive the chosen image file (we’ll place it in Step 2)
+  onImageSelected: async (file) => {
+    // Next step will: create a dataURL, set tool='image', and let user click to place/resize
+    // For now just switch the tool visually to 'image'
+    state.tool = "image";
+    setActiveToolButton("image");
+    setOverlayCursor("note"); // cursor 'copy' works fine for image placement too
+    // We’ll implement actual placement in the next step.
   },
 };
