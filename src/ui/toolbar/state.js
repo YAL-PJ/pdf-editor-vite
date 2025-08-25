@@ -11,6 +11,7 @@ const BUTTON_IDS = [
   "toolText", "toolImage",
 ];
 
+const TOOL_BUTTON_IDS = ["toolSelect","toolHighlight","toolNote","toolText","toolImage"];
 
 // Map: tool value -> button id (null means the Select/regular cursor tool)
 const TOOL_TO_ID = new Map([
@@ -38,16 +39,21 @@ export function setToolbarEnabled(enabled) {
 }
 // --- Active tool visual state ---
 export function setActiveToolButton(tool) {
-  // clear all
-  for (const id of BUTTON_IDS) {
+  // clear tool buttons only
+  for (const id of TOOL_BUTTON_IDS) {
     const el = document.getElementById(id);
-    if (el) el.classList.remove("active");
+    if (!el) continue;
+    el.classList.remove("active");
+    el.setAttribute("aria-pressed", "false");
   }
-  // set the one matching the tool (if present)
+  // set active
   const activeId = TOOL_TO_ID.get(tool);
-  if (!activeId) return; // null/undefined tool -> no active styling (or Select handled via map)
+  if (!activeId) return; // e.g., null = Select (still has a button)
   const el = document.getElementById(activeId);
-  if (el) el.classList.add("active");
+  if (el) {
+    el.classList.add("active");
+    el.setAttribute("aria-pressed", "true");
+  }
 }
 
 

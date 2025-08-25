@@ -3,7 +3,7 @@
  */
 export function createToolbarHTML() {
   return `
-    <div class="toolbar" role="toolbar" aria-label="PDF viewer controls">
+    <div class="toolbar" role="toolbar" aria-label="PDF viewer controls" tabindex="0">
       <div class="toolbar-group">
         <button id="prevPage" type="button" aria-label="Previous page">◀ Prev</button>
         <span class="page-info">
