@@ -8,4 +8,9 @@ export default defineConfig({
       '@ui' : '/src/ui',
     },
   },
+  server: {
+    headers: {
+      'Content-Type': 'text/javascript; charset=utf-8',
+    },
+  },
 });
