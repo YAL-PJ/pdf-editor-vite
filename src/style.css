@@ -1,9 +1,9 @@
 /* ---------- Theme & base ---------- */
 :root {
-  --bg: #0f172a;       /* slate-900 */
-  --fg: #e2e8f0;       /* slate-200 */
+  --bg: #0f172a;      /* slate-900 */
+  --fg: #e2e8f0;      /* slate-200 */
   --muted: #94a3b8;    /* slate-400 */
-  --accent: #60a5fa;   /* blue-400 */
+  --accent: #60a5fa;  /* blue-400 */
 
   --note-bg: #fff8c6;
   --note-border: #e6d36f;
@@ -16,7 +16,7 @@
   --btn-border: #334155;
 }
 
-* { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; } /* Best practice for box-sizing */
 html, body { height: 100%; }
 body {
   margin: 0;
@@ -66,23 +66,23 @@ main {
 
 /* ---------- Viewer ---------- */
 #viewer {
-  position: relative;           /* host absolute overlay */
-  display: inline-block;
+  position: relative;        /* host absolute overlay */
+  display: block;            /* was inline-block */
   border: 1px solid var(--panel-border);
   border-radius: 8px;
-  overflow: hidden;             /* clip overlay edges */
+  overflow: visible;         /* was hidden; don't clip overlay or canvas */
   background: #0b1022;
   max-width: 100%;
-  max-height: calc(100vh - 200px); /* make tall pages scrollable */
 }
 .viewer-scroll {
-  overflow: auto;               /* optional: wrap #viewer in a scrollable div */
+  max-height: calc(100vh - 200px);  /* put the scroll constraint on the wrapper */
+  overflow: auto;                    /* this wrapper now scrolls */
 }
 
 #pdfCanvas {
   display: block;
   position: relative;
-  z-index: 1;                   /* below overlay */
+  z-index: 1; /* below overlay */
   max-width: 100%;
   height: auto;
 }
@@ -90,7 +90,7 @@ main {
 /* Overlay sits above canvas and accepts input */
 #annoLayer {
   position: absolute;
-  inset: 0;                     /* left:0; top:0; right:0; bottom:0 */
+  inset: 0; /* left:0; top:0; right:0; bottom:0 */
   z-index: 2;
   pointer-events: auto;
 }
@@ -98,7 +98,7 @@ main {
 /* Cursor by tool (use data-tool attribute) */
 #annoLayer[data-tool="highlight"] { cursor: crosshair; }
 #annoLayer[data-tool="note"]      { cursor: copy; }
-#annoLayer:not([data-tool])       { cursor: default; }
+#annoLayer:not([data-tool])      { cursor: default; }
 
 /* ---------- Annotations ---------- */
 /* Highlight rectangles */
@@ -160,8 +160,6 @@ main {
 
 /* ---------- Utilities (optional) ---------- */
 .hidden { display: none !important; }
-
-
 
 /* Text box */
 .text-box {
