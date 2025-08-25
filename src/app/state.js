@@ -19,4 +19,7 @@ export const state = {
 
   // Per-page PDF.js viewports
   viewports: {},
+
+  pendingImageSrc: null,   // dataURL of the image just picked (awaiting placement)
+
 };
