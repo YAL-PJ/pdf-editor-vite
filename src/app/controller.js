@@ -1,12 +1,13 @@
 /**
  * controller.js
- * Central app logic: manages state, rendering, toolbar updates.
+ * Central app logic: manages state, rendering, toolbar updates, and persistence.
  */
 import { state } from "@app/state";
 import { ui, setToolbarEnabled, setActiveToolButton } from "@ui/toolbar";
 import { loadPDF } from "@pdf/pdfLoader";
 import { renderPage, getIsRendering } from "@pdf/pdfRenderer";
 import { renderAnnotationsForPage, setOverlayCursor, resizeOverlayToCanvas } from "@ui/overlay";
+import { saveState } from "./persistence"; // NEW: Import saveState
 
 /**
  * Render current page at current zoom.
@@ -38,10 +39,32 @@ export async function rerender() {
 
 /**
  * Open PDF and reset state.
+ * @param {File} file The PDF file to open
  */
 export async function openFile(file) {
-  state.pdfDoc = await loadPDF(file);
+  // We need to get both the PDF document and the raw data from loadPDF
+  const { doc, rawData } = await loadPDF(file);
+  state.pdfDoc = doc;
+  state.loadedPdfData = rawData; // Store the raw data for persistence and export
   state.pageNum = 1;
+  ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
+  await rerender();
+  saveState(); // Save state after a new file is loaded
+}
+
+/**
+ * Restore the file from saved data in state.
+ */
+export async function restoreFile() {
+  if (!state.loadedPdfData) {
+    console.warn("No loaded PDF data to restore.");
+    return;
+  }
+  
+  // Re-open the PDF document from the raw data
+  const { doc } = await loadPDF(new File([state.loadedPdfData], "restored.pdf"));
+  state.pdfDoc = doc;
+  
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
   await rerender();
 }
@@ -71,12 +94,11 @@ export const handlers = {
     await rerender();
   },
   onToolChange: (tool) => {
-    state.tool = tool;                   // null | 'highlight' | 'note' | 'text' | 'image'
-    setActiveToolButton(tool);           // visual state
-    setOverlayCursor(tool);              // cursor feedback
+    state.tool = tool;
+    setActiveToolButton(tool);
+    setOverlayCursor(tool);
   },
     
-  
   onPickImage: () => {
     const picker = document.getElementById("imagePicker");
     if (picker) picker.click();

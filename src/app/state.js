@@ -4,6 +4,7 @@
  */
 export const state = {
   pdfDoc: null,
+  loadedPdfData: null, // NEW: Property to store raw PDF data as Uint8Array
   pageNum: 1,
   scale: 1.0,
 
@@ -20,6 +21,5 @@ export const state = {
   // Per-page PDF.js viewports
   viewports: {},
 
-  pendingImageSrc: null,   // dataURL of the image just picked (awaiting placement)
-
+  pendingImageSrc: null, // dataURL of the image just picked (awaiting placement)
 };

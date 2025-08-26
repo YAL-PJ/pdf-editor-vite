@@ -4,9 +4,10 @@
  * Why: Keeps all PDF.js specifics contained.
  */
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs";
+import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+// Assign the URL to the workerSrc option
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
 
 /**
  * loadPDF(file: File) -> Promise<{doc: pdfDoc, rawData: Uint8Array}>

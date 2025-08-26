@@ -9,6 +9,8 @@
  *  - Press ESC during drag to cancel
  */
 import { state } from "@app/state";
+import { saveState } from "@app/persistence";
+
 import { renderAnnotationsForPage } from "./index";
 
 // ---- utils ----
@@ -160,6 +162,7 @@ export function initImageDrag() {
       rect: normalizeRect(x, y, w, h, cw, ch),
       src: state.pendingImageSrc,
     });
+    saveState()
 
     // One placement per pick: clear pending source
     state.pendingImageSrc = null;

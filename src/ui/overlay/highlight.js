@@ -1,6 +1,7 @@
 // highlight.js — highlight helpers + drag interaction
 import { state } from "@app/state";
 import { renderAnnotationsForPage } from "./render";
+import { saveState } from "@app/persistence";
 
 // create a positioned highlight element
 export function makeHighlightPx({ x, y, w, h }) {
@@ -80,6 +81,7 @@ export function initHighlightDrag() {
         if (!state.annotations[state.pageNum]) state.annotations[state.pageNum] = [];
         const rectN = normalizeRect(x, y, w, h, cw, ch);
         state.annotations[state.pageNum].push({ type: "highlight", rect: rectN });
+        saveState();
       }
       renderAnnotationsForPage(state.pageNum);
     };

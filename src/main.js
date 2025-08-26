@@ -1,16 +1,17 @@
 /**
- * main.js
- * Bootstraps the app: toolbar, file input, and annotation tools.
- */
+ * main.js
+ * Bootstraps the app: toolbar, file input, and annotation tools.
+ */
 import { createToolbar } from "@ui/toolbar";
 import { setupFileInput } from "@ui/uiHandlers";
-import { openFile, handlers, state } from "@app/controller"; // Note: Added 'state' export
+import { state } from "@app/state";
+import { openFile, handlers, restoreFile } from "@app/controller";
 import { initHighlightDrag, initNotePlacement, initTextDrag, initImageDrag } from "@ui/overlay";
 import { downloadAnnotatedPdf } from "./pdf/exportAnnotated.js";
+import { loadState } from "@app/persistence"; // NEW: Import loadState from the new persistence file
 import "./style.css";
 
 // Helper function to handle PDF download
-// The raw PDF data is now accessed from the global state object.
 const toolbarHandlers = {
     onDownloadAnnotated: () => downloadAnnotatedPdf(state.loadedPdfData, "annotated.pdf"),
     ...handlers // Merge with other handlers from the controller
@@ -23,7 +24,17 @@ initImageDrag();
 // Pass the new toolbarHandlers object
 createToolbar("toolbar", toolbarHandlers);
 
+// Attempt to load a saved state from localStorage
+const wasStateRestored = loadState();
+
+// If a saved state was successfully loaded, restore the PDF document
+if (wasStateRestored) {
+  console.log("Restoring saved PDF and annotations...");
+  restoreFile();
+}
+
 // File input: load PDF into controller
+// Note: This will be the primary way to load a new file if one wasn't restored
 setupFileInput(openFile);
 
 // Init overlay tools (highlight + sticky notes)

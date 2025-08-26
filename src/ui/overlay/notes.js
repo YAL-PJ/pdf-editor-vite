@@ -1,5 +1,6 @@
 // notes.js — sticky note helpers + click-to-place + drag + delete
 import { state } from "@app/state";
+import { saveState } from "@app/persistence";
 import { renderAnnotationsForPage } from "./render";
 
 export function denormalizePoint(nx, ny, cw, ch) {
@@ -48,6 +49,7 @@ export function initNotePlacement() {
 
     if (!state.annotations[state.pageNum]) state.annotations[state.pageNum] = [];
     state.annotations[state.pageNum].push({ type: "note", pos: [nx, ny], text: "New note..." });
+    saveState()
 
     renderAnnotationsForPage(state.pageNum);
   });

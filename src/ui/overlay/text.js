@@ -9,6 +9,7 @@
  *  - Press ESC during drag to cancel.
  */
 import { state } from "@app/state";
+import { saveState } from "@app/persistence";
 import { renderAnnotationsForPage } from "./render";
 
 // utils
@@ -92,6 +93,7 @@ export function initTextDrag() {
     };
 
     state.annotations[state.pageNum].push(ann);
+    saveState()
     renderAnnotationsForPage(state.pageNum);
 
     // Focus the newly created text box (if it exists now)
