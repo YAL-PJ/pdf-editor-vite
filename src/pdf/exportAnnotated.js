@@ -1,10 +1,14 @@
 // pdf/exportAnnotated.js
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { loadedPdfData } from "./pdfLoader.js";
+// The raw data is now passed as an argument, so no import is needed.
 import { state } from "../app/state.js";
 
-export async function downloadAnnotatedPdf(filename = "annotated.pdf") {
-  if (!loadedPdfData) {
+/**
+ * downloadAnnotatedPdf(rawData: Uint8Array, filename: string)
+ * Loads a PDF from raw data and adds annotations from state before downloading.
+ */
+export async function downloadAnnotatedPdf(rawData, filename = "annotated.pdf") {
+  if (!rawData) {
     console.warn("[exportAnnotated] No PDF loaded, cannot export.");
     alert("Please load a PDF first before exporting.");
     return;
@@ -12,7 +16,7 @@ export async function downloadAnnotatedPdf(filename = "annotated.pdf") {
 
   console.log("[exportAnnotated] Starting export with annotations...");
 
-  const pdfDoc = await PDFDocument.load(loadedPdfData);
+  const pdfDoc = await PDFDocument.load(rawData);
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const pages = pdfDoc.getPages();
 

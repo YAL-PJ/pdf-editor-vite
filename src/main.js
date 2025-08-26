@@ -4,14 +4,15 @@
  */
 import { createToolbar } from "@ui/toolbar";
 import { setupFileInput } from "@ui/uiHandlers";
-import { openFile, handlers } from "@app/controller";
+import { openFile, handlers, state } from "@app/controller"; // Note: Added 'state' export
 import { initHighlightDrag, initNotePlacement, initTextDrag, initImageDrag } from "@ui/overlay";
-import { downloadAnnotatedPdf } from "./pdf/exportAnnotated.js"; // New import
+import { downloadAnnotatedPdf } from "./pdf/exportAnnotated.js";
 import "./style.css";
 
 // Helper function to handle PDF download
+// The raw PDF data is now accessed from the global state object.
 const toolbarHandlers = {
-    onDownloadAnnotated: () => downloadAnnotatedPdf("annotated.pdf"),
+    onDownloadAnnotated: () => downloadAnnotatedPdf(state.loadedPdfData, "annotated.pdf"),
     ...handlers // Merge with other handlers from the controller
 };
 
