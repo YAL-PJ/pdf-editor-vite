@@ -19,13 +19,19 @@ export function createToolbarHTML() {
       </div>
 
       <div class="toolbar-group" role="group" aria-label="Annotation tools">
-        <button id="toolSelect" type="button" aria-label="Select tool" aria-pressed="true">↖ Select</button>
-        <button id="toolHighlight" type="button" aria-label="Highlight tool" aria-pressed="false">🖍 Highlight</button>
-        <button id="toolNote" type="button" aria-label="Note tool" aria-pressed="false">📝 Note</button>
-        <button id="toolText" type="button" aria-label="Text tool" aria-pressed="false">✒ Text</button>
-        <button id="toolImage" type="button" aria-label="Insert image tool" aria-pressed="false">🖼 Image</button>
+        <button id="toolSelect"   type="button" aria-label="Select tool"         aria-pressed="true">↖ Select</button>
+        <button id="toolHighlight"type="button" aria-label="Highlight tool"      aria-pressed="false">🖍 Highlight</button>
+        <button id="toolNote"     type="button" aria-label="Note tool"           aria-pressed="false">📝 Note</button>
+        <button id="toolText"     type="button" aria-label="Text tool"           aria-pressed="false">✒ Text</button>
+        <button id="toolImage"    type="button" aria-label="Insert image tool"   aria-pressed="false">🖼 Image</button>
       </div>
-      
+
+      <div class="toolbar-group">
+        <button id="btnDownloadAnnotated" type="button" aria-label="Download PDF with annotations" title="Download PDF with annotations">
+          💾 Download (annotated)
+        </button>
+      </div>
+
       <input 
         id="imagePicker" 
         type="file" 
