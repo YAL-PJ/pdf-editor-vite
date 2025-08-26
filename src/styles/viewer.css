@@ -1,0 +1,36 @@
+/* ---------- Viewer ---------- */
+#viewer {
+  position: relative;        /* host absolute overlay */
+  display: block;            /* was inline-block */
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  overflow: visible;         /* don't clip overlay or canvas */
+  background: #0b1022;
+  max-width: 100%;
+}
+
+.viewer-scroll {
+  max-height: calc(100vh - 200px);  /* scroll constraint on wrapper */
+  overflow: auto;
+}
+
+#pdfCanvas {
+  display: block;
+  position: relative;
+  z-index: 1; /* below overlay */
+  max-width: 100%;
+  height: auto;
+}
+
+/* Overlay sits above canvas and accepts input */
+#annoLayer {
+  position: absolute;
+  inset: 0; /* left:0; top:0; right:0; bottom:0 */
+  z-index: 2;
+  pointer-events: auto;
+}
+
+/* Cursor by tool (use data-tool attribute) */
+#annoLayer[data-tool="highlight"] { cursor: crosshair; }
+#annoLayer[data-tool="note"]      { cursor: copy; }
+#annoLayer:not([data-tool])       { cursor: default; }

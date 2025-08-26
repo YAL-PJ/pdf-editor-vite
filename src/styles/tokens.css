@@ -1,0 +1,17 @@
+/* ---------- Theme tokens ---------- */
+:root {
+  --bg: #0f172a;      /* slate-900 */
+  --fg: #e2e8f0;      /* slate-200 */
+  --muted: #94a3b8;   /* slate-400 */
+  --accent: #60a5fa;  /* blue-400 */
+
+  --note-bg: #fff8c6;
+  --note-border: #e6d36f;
+
+  --hi-bg: rgba(255, 235, 59, 0.45);
+  --hi-preview: rgba(255, 235, 59, 0.25);
+  --panel: #111827;
+  --panel-border: #1f2937;
+  --btn-bg: #0b1220;
+  --btn-border: #334155;
+}
