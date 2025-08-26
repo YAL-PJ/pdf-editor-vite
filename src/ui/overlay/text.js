@@ -85,7 +85,7 @@ export function initTextDrag() {
     const ann = {
       type: "text",
       rect: rectN,
-      text: "New text...",
+      text: "",
       fontSize: Math.max(12, Math.round(h * 0.45)),
       color: "#111",
       align: "left",

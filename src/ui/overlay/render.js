@@ -93,8 +93,11 @@ export function renderAnnotationsForPage(pageNum /* , viewport? */) {
       close.textContent = "×";
 
       Object.assign(box.style, { left:`${x}px`, top:`${y}px`, width:`${w}px`, height:`${h}px` });
+
+      // Editable body + placeholder
       body.contentEditable = "true";
-      body.textContent = ann.text ?? "New text...";
+      body.dataset.placeholder = "Type here…";   // CSS reads this via attr()
+      body.textContent = ann.text || "";
       body.style.color = ann.color || "#111";
       body.style.textAlign = ann.align || "left";
       body.style.fontSize = `${ann.fontSize || 14}px`;
@@ -104,6 +107,21 @@ export function renderAnnotationsForPage(pageNum /* , viewport? */) {
       box.appendChild(close);
       box.appendChild(body);
       layer.appendChild(box);
+
+      // ---- Placeholder empty-state handling ----
+      const updateEmpty = () => {
+        const t = (body.textContent || "").trim();
+        body.classList.toggle("is-empty", t.length === 0);
+      };
+      body.addEventListener("input", () => {
+        ann.text = body.textContent || "";
+        updateEmpty();
+      });
+      body.addEventListener("blur", () => {
+        ann.text = body.textContent || "";
+        updateEmpty();
+      });
+      updateEmpty(); // show placeholder if empty on initial render
 
       // Drag by header
       let sx=0, sy=0, ox=0, oy=0;
@@ -117,7 +135,7 @@ export function renderAnnotationsForPage(pageNum /* , viewport? */) {
         const move = (ev) => {
           const nxp = Math.max(0, Math.min(ox + (ev.clientX - sx), cw - box.offsetWidth));
           const nyp = Math.max(0, Math.min(oy + (ev.clientY - sy), ch - box.offsetHeight));
-          box.style.left = `${nxp}px`; 
+          box.style.left = `${nxp}px`;
           box.style.top  = `${nyp}px`;
         };
         const up = () => {
@@ -129,11 +147,6 @@ export function renderAnnotationsForPage(pageNum /* , viewport? */) {
         };
         document.addEventListener("mousemove", move);
         document.addEventListener("mouseup", up);
-      });
-
-      // Persist text on blur
-      body.addEventListener("blur", () => {
-        ann.text = body.textContent || "";
       });
 
       // Persist size on mouseup (user may have resized via CSS handles)
