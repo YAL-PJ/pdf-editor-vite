@@ -6,7 +6,7 @@ import { state } from "@app/state";
 import { ui, setToolbarEnabled, setActiveToolButton } from "@ui/toolbar";
 import { loadPDF } from "@pdf/pdfLoader";
 import { renderPage, getIsRendering } from "@pdf/pdfRenderer";
-import { renderAnnotationsForPage, setOverlayCursor } from "@ui/overlay";
+import { renderAnnotationsForPage, setOverlayCursor, resizeOverlayToCanvas } from "@ui/overlay";
 
 /**
  * Render current page at current zoom.
@@ -19,7 +19,8 @@ export async function rerender() {
   try {
     // Render once and grab viewport
     const { viewport } = await renderPage(state.pdfDoc, state.pageNum, state.scale);
-
+    resizeOverlayToCanvas();   // <-- make overlay match the canvas size
+    
     // Save viewport for highlight/note coord mapping
     if (!state.viewports) state.viewports = {};
     state.viewports[state.pageNum] = viewport;

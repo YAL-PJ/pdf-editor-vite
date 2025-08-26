@@ -29,8 +29,15 @@ export function attachToolbarEvents(handlers) {
   if (highlightBtn)highlightBtn.addEventListener("click", () => safe(handlers.onToolChange)("highlight"));
   if (noteBtn)     noteBtn.addEventListener("click", () => safe(handlers.onToolChange)("note"));
   if (textBtn)      textBtn.addEventListener("click", () => safe(handlers.onToolChange)("text"));
-  if (imageBtn)     imageBtn.addEventListener("click", () => safe(handlers.onPickImage && handlers.onPickImage()));
+  if (imageBtn)     imageBtn.addEventListener("click", () => safe(handlers.onPickImage)());
   
+
+  if (textBtn)      textBtn.addEventListener("click", () => { console.log("[toolbar] Text tool clicked"); safe(handlers.onToolChange)("text"); });
+  if (selectBtn)    selectBtn.addEventListener("click", () => { console.log("[toolbar] Select tool clicked"); safe(handlers.onToolChange)(null); });
+  if (highlightBtn) highlightBtn.addEventListener("click", () => { console.log("[toolbar] Highlight tool clicked"); safe(handlers.onToolChange)("highlight"); });
+  if (noteBtn)      noteBtn.addEventListener("click", () => { console.log("[toolbar] Note tool clicked"); safe(handlers.onToolChange)("note"); });
+  if (imageBtn)     imageBtn.addEventListener("click", () => { console.log("[toolbar] Image tool clicked → open picker"); safe(handlers.onPickImage)(); });
+
 
   // wire image file input (handler provided by controller later)
   const picker = document.getElementById("imagePicker");

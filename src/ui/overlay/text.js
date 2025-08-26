@@ -9,7 +9,7 @@
  *  - Press ESC during drag to cancel.
  */
 import { state } from "@app/state";
-import { renderAnnotationsForPage } from "./index";
+import { renderAnnotationsForPage } from "./render";
 
 // utils
 function normalizeRect(px, py, pw, ph, cw, ch) {
@@ -137,4 +137,6 @@ export function initTextDrag() {
   }
 
   layer.addEventListener("mousedown", onDown);
+  console.log("[text] mousedown; tool =", state.tool);
+
 }
