@@ -1,42 +1,71 @@
 /**
  * main.js
- * Bootstraps the app: toolbar, file input, and annotation tools.
+ * - Bootstraps UI + persistence
+ * - Debounced autosave for any state-changing handler
+ * - No warning on refresh; warn on real leave
  */
+
 import { createToolbar } from "@ui/toolbar";
 import { setupFileInput } from "@ui/uiHandlers";
 import { openFile, handlers, restoreFile } from "@app/controller";
 import { state } from "@app/state";
 import { initHighlightDrag, initNotePlacement, initTextDrag, initImageDrag } from "@ui/overlay";
 import { downloadAnnotatedPdf } from "./pdf/exportAnnotated.js";
-import { loadState, initUnloadWarning } from "@app/persistence";
+import { loadState, initUnloadWarning, scheduleSave } from "@app/persistence";
 import "./style.css";
 
-// Helper function to handle PDF download
-const toolbarHandlers = {
-    onDownloadAnnotated: () => downloadAnnotatedPdf(state.loadedPdfData, "annotated.pdf"),
-    ...handlers
+/* Wrap state-mutating handlers to autosave */
+const withAutoSave = (fn) => (...args) => {
+  const out = fn?.(...args);
+  if (out && typeof out.then === "function") {
+    return out
+      .then((v) => { scheduleSave(); return v; })
+      .catch((e) => { scheduleSave(); throw e; });
+  }
+  scheduleSave();
+  return out;
 };
 
+const instrumentHandlers = (h) =>
+  Object.fromEntries(Object.entries(h || {}).map(([k, fn]) => [k, withAutoSave(fn)]));
+
+/* Toolbar handlers */
+const toolbarHandlers = {
+  onDownloadAnnotated: () => {
+    if (!state.loadedPdfData) { alert("Open a PDF first."); return; }
+    downloadAnnotatedPdf(state.loadedPdfData, "annotated.pdf");
+  },
+  ...instrumentHandlers(handlers)
+};
+
+/* UI init */
 initTextDrag();
 initImageDrag();
-
-// Build toolbar and wire handlers
 createToolbar("toolbar", toolbarHandlers);
 
-// Attempt to load a saved state from sessionStorage
-const wasStateRestored = loadState();
+// Ensure file-open actions also trigger a save (so a quick leave can restore)
+setupFileInput(async (...args) => {
+  try {
+    const res = await openFile(...args);
+    scheduleSave(50);
+    return res;
+  } catch (err) {
+    console.error("Failed to open file:", err);
+  }
+});
 
-if (wasStateRestored) {
-    console.log("Restoring saved PDF and annotations...");
-    restoreFile();
-}
-
-// File input: load PDF into controller
-setupFileInput(openFile);
-
-// Init overlay tools (highlight + sticky notes)
 initHighlightDrag();
 initNotePlacement();
 
-// Activate the unload warning
+/* Restore + lifecycle */
+const wasStateRestored = await loadState();
+if (wasStateRestored) {
+  try {
+    restoreFile();
+    // ensure meta is fresh so refresh won't warn right after restore
+    scheduleSave(50);
+  } catch (e) {
+    console.error("Restore failed", e);
+  }
+}
 initUnloadWarning();
