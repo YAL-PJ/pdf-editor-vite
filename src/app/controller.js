@@ -6,8 +6,12 @@ import { state } from "@app/state";
 import { ui, setToolbarEnabled, setActiveToolButton } from "@ui/toolbar";
 import { loadPDF } from "@pdf/pdfLoader";
 import { renderPage, getIsRendering } from "@pdf/pdfRenderer";
-import { renderAnnotationsForPage, setOverlayCursor, resizeOverlayToCanvas } from "@ui/overlay";
-import { saveState } from "./persistence"; // NEW: Import saveState
+import {
+  renderAnnotationsForPage,
+  setOverlayCursor,
+  syncOverlayToCanvas,
+} from "@ui/overlay";
+import { saveState } from "./persistence";
 
 /**
  * Render current page at current zoom.
@@ -18,10 +22,12 @@ export async function rerender() {
 
   setToolbarEnabled(false);
   try {
-    // Render once and grab viewport
+    // Render once and grab viewport (pdfRenderer should return it)
     const { viewport } = await renderPage(state.pdfDoc, state.pageNum, state.scale);
-    resizeOverlayToCanvas();   // <-- make overlay match the canvas size
-    
+
+    // Keep overlay aligned to canvas
+    syncOverlayToCanvas();
+
     // Save viewport for highlight/note coord mapping
     if (!state.viewports) state.viewports = {};
     state.viewports[state.pageNum] = viewport;
@@ -42,14 +48,13 @@ export async function rerender() {
  * @param {File} file The PDF file to open
  */
 export async function openFile(file) {
-  // We need to get both the PDF document and the raw data from loadPDF
   const { doc, rawData } = await loadPDF(file);
   state.pdfDoc = doc;
-  state.loadedPdfData = rawData; // Store the raw data for persistence and export
+  state.loadedPdfData = rawData; // keep raw bytes for export/restore
   state.pageNum = 1;
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
   await rerender();
-  saveState(); // Save state after a new file is loaded
+  saveState();
 }
 
 /**
@@ -60,11 +65,9 @@ export async function restoreFile() {
     console.warn("No loaded PDF data to restore.");
     return;
   }
-  
-  // Re-open the PDF document from the raw data
   const { doc } = await loadPDF(new File([state.loadedPdfData], "restored.pdf"));
   state.pdfDoc = doc;
-  
+
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
   await rerender();
 }
@@ -94,25 +97,32 @@ export const handlers = {
     await rerender();
   },
   onToolChange: (tool) => {
-    state.tool = tool;
-    setActiveToolButton(tool);
-    setOverlayCursor(tool);
+    state.tool = tool || null;
+    setActiveToolButton(tool || null);
+    setOverlayCursor(tool || null); // updates #annoLayer[data-tool]
   },
-    
+
+  // ---- Image flow ----
   onPickImage: () => {
     const picker = document.getElementById("imagePicker");
     if (picker) picker.click();
   },
 
   onImageSelected: async (file) => {
-    const toDataURL = (f) => new Promise((res) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result);
-      r.readAsDataURL(f);
-    });
+    // Use DataURL for portability (can also use ObjectURL)
+    const toDataURL = (f) =>
+      new Promise((res) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result);
+        r.readAsDataURL(f);
+      });
+
     state.pendingImageSrc = await toDataURL(file);
     state.tool = "image";
     setActiveToolButton("image");
-    setOverlayCursor("note");
+    setOverlayCursor("image"); // cursor rule below
   },
+
+  // Wire your existing download handler from main.js
+  // onDownloadAnnotated: () => {}
 };

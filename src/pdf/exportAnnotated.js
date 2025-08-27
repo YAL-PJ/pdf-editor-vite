@@ -1,7 +1,44 @@
 // pdf/exportAnnotated.js
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-// The raw data is now passed as an argument, so no import is needed.
 import { state } from "../app/state.js";
+
+/**
+ * Convert an image src (data: URL or object URL) into bytes and a mime hint.
+ */
+async function srcToBytesAndType(src) {
+  // Data URL?
+  if (typeof src === "string" && src.startsWith("data:")) {
+    const comma = src.indexOf(",");
+    const header = src.slice(5, comma); // e.g., "image/png;base64"
+    const base64 = src.slice(comma + 1);
+    const mime = header.split(";")[0]; // "image/png"
+    const binStr = atob(base64);
+    const len = binStr.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binStr.charCodeAt(i);
+    return { bytes, mime };
+  }
+
+  // Blob/object URL or remote URL
+  const resp = await fetch(src);
+  const mime = resp.headers.get("content-type") || "";
+  const buf = await resp.arrayBuffer();
+  return { bytes: new Uint8Array(buf), mime };
+}
+
+/**
+ * Heuristic: decide PNG vs JPEG for pdf-lib embedders.
+ */
+function isPngBytes(bytes, mimeHint) {
+  if (mimeHint && mimeHint.toLowerCase().includes("png")) return true;
+  // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+  if (bytes.length >= 8) {
+    const sig = [0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A];
+    for (let i = 0; i < sig.length; i++) if (bytes[i] !== sig[i]) return false;
+    return true;
+  }
+  return false;
+}
 
 /**
  * downloadAnnotatedPdf(rawData: Uint8Array, filename: string)
@@ -14,17 +51,9 @@ export async function downloadAnnotatedPdf(rawData, filename = "annotated.pdf") 
     return;
   }
 
-  console.log("[exportAnnotated] Starting export with annotations...");
-
   const pdfDoc = await PDFDocument.load(rawData);
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const pages = pdfDoc.getPages();
-
-  // 🔴 Debug sanity check
-  pages[0].drawText("DEBUG TEST", {
-    x: 50, y: 50, size: 14, font, color: rgb(1, 0, 0),
-  });
-  console.log("[exportAnnotated] Drew DEBUG TEST at (50,50) on page 1");
 
   for (let i = 0; i < pages.length; i++) {
     const pageNum = i + 1;
@@ -35,20 +64,13 @@ export async function downloadAnnotatedPdf(rawData, filename = "annotated.pdf") 
     const pw = page.getWidth();
     const ph = page.getHeight();
 
-    console.log(`[exportAnnotated] Page ${pageNum}, width=${pw}, height=${ph}, anns=${anns.length}`);
-
     for (const ann of anns) {
-      console.log("[exportAnnotated] Annotation object:", ann);
-
       if (ann.type === "highlight") {
         const [nx, ny, nw, nh] = ann.rect;
-        const x = nx * pw;
-        const yTopLeft = ny * ph;
-        const h = nh * ph;
-        const y = ph - yTopLeft - h;
         const w = nw * pw;
-
-        console.log(`[exportAnnotated] Highlight → x=${x}, y=${y}, w=${w}, h=${h}`);
+        const h = nh * ph;
+        const x = nx * pw;
+        const y = ph - ny * ph - h; // convert from top-left to PDF bottom-left
 
         page.drawRectangle({
           x, y, width: w, height: h,
@@ -61,29 +83,41 @@ export async function downloadAnnotatedPdf(rawData, filename = "annotated.pdf") 
 
         let x = 50, y = 50; // defaults
         if (ann.rect) {
-          // For text tool
+          // Text tool box (normalized rect)
           const [nx, ny, nw, nh] = ann.rect;
-          x = nx * pw;
-          const yTopLeft = ny * ph;
+          const w = nw * pw;
           const h = nh * ph;
-          y = ph - yTopLeft - h;
+          x = nx * pw;
+          y = ph - ny * ph - h;
         } else if (ann.pos) {
-          // For sticky notes
+          // Sticky note (normalized point)
           const [nx, ny] = ann.pos;
           x = nx * pw;
-          const yCanvas = ny * ph;
-          y = ph - yCanvas - fontSize;
+          y = ph - ny * ph - fontSize;
         }
 
-        console.log(`[exportAnnotated] Text/Note → "${text}" at (x=${x}, y=${y}) fontSize=${fontSize}`);
-
         page.drawText(text, {
-          x,
-          y,
-          size: fontSize,
-          font,
-          color: rgb(0, 0, 0),
+          x, y, size: fontSize, font, color: rgb(0, 0, 0),
         });
+
+      } else if (ann.type === "image" && ann.src) {
+        // ---- IMAGE SUPPORT ----
+        try {
+          const { bytes, mime } = await srcToBytesAndType(ann.src);
+          const embed = isPngBytes(bytes, mime)
+            ? await pdfDoc.embedPng(bytes)
+            : await pdfDoc.embedJpg(bytes);
+
+          const [nx, ny, nw, nh] = ann.rect;
+          const w = nw * pw;
+          const h = nh * ph;
+          const x = nx * pw;
+          const y = ph - ny * ph - h;
+
+          page.drawImage(embed, { x, y, width: w, height: h });
+        } catch (e) {
+          console.warn("[exportAnnotated] Failed to embed image:", e);
+        }
       }
     }
   }
@@ -91,8 +125,6 @@ export async function downloadAnnotatedPdf(rawData, filename = "annotated.pdf") 
   const bytes = await pdfDoc.save();
   const blob = new Blob([bytes], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
-
-  console.log("[exportAnnotated] Export complete, triggering download...");
 
   const a = document.createElement("a");
   a.href = url; a.download = filename; a.click();

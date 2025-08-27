@@ -4,8 +4,8 @@
  *          scale for HiDPI (retina) displays, and keep the annotation overlay
  *          in sync with the canvas size.
  */
-
-import { resizeOverlayToCanvas } from "@ui/overlay";
+import { syncOverlayToCanvas, renderAnnotationsForPage } from "@ui/overlay";
+import { state } from "@app/state";
 
 let activeTask = null;   // current PDF.js RenderTask
 let isRendering = false; // flag so controller can guard re-entries
@@ -68,9 +68,12 @@ export async function renderPage(pdfDoc, pageNum = 1, scale = 1.0) {
     isRendering = false;
   }
 
-  // Keep the annotation overlay aligned to the canvas size/position
-  resizeOverlayToCanvas();
+// Keep the annotation overlay aligned to the canvas size/position
+syncOverlayToCanvas();
 
-  // Return the CSS pixel size that the rest of the UI can use
-  return { width: cssWidth, height: cssHeight };
+// Repaint annotations for the current page
+renderAnnotationsForPage(state.pageNum);
+
+// Return the CSS pixel size that the rest of the UI can use
+return { viewport, width: cssWidth, height: cssHeight };
 }

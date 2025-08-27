@@ -93,7 +93,7 @@ export function initTextDrag() {
     };
 
     state.annotations[state.pageNum].push(ann);
-    saveState()
+    saveState();
     renderAnnotationsForPage(state.pageNum);
 
     // Focus the newly created text box (if it exists now)

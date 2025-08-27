@@ -30,7 +30,7 @@ export function attachToolbarEvents(handlers) {
   if (textBtn)      textBtn.addEventListener("click",      () => { log("Text tool");      safe(handlers.onToolChange)("text"); });
   if (imageBtn)     imageBtn.addEventListener("click",     () => { log("Image tool → open picker"); safe(handlers.onPickImage)(); });
 
-  // Image file input
+  // Image file input (hidden <input type="file" id="imagePicker" accept="image/*">)
   const picker = document.getElementById("imagePicker");
   if (picker && handlers.onImageSelected) {
     picker.addEventListener("change", (e) => {
@@ -40,11 +40,10 @@ export function attachToolbarEvents(handlers) {
     });
   }
 
-  // Download (annotated)
+  // Download annotated
   const dlBtn = document.getElementById("btnDownloadAnnotated");
   if (dlBtn) dlBtn.addEventListener("click", () => {
     log("Download annotated");
-    // Expect the controller to provide this; it can call downloadAnnotatedPdf()
     safe(handlers.onDownloadAnnotated)();
   });
 }

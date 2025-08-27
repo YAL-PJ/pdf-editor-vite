@@ -105,3 +105,18 @@
 .image-header { height: 14px; background: rgba(0,0,0,.06); cursor: move; }
 .image-close-btn { position:absolute; right:4px; top:0; border:none; background:transparent; cursor:pointer; font-size:14px; color:#333; }
 .image-box img { width:100%; height:100%; object-fit: contain; display:block; }
+
+
+/* Image annotation boxes */
+.image-box {
+  position: absolute;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* While dragging (the live preview box) */
+.image-box.preview {
+  opacity: 0.75;
+  outline: 1px dashed rgba(255,165,0,0.7);
+}

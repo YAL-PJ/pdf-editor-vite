@@ -162,7 +162,7 @@ export function initImageDrag() {
       rect: normalizeRect(x, y, w, h, cw, ch),
       src: state.pendingImageSrc,
     });
-    saveState()
+    saveState();
 
     // One placement per pick: clear pending source
     state.pendingImageSrc = null;

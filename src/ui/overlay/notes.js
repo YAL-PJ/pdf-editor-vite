@@ -49,7 +49,7 @@ export function initNotePlacement() {
 
     if (!state.annotations[state.pageNum]) state.annotations[state.pageNum] = [];
     state.annotations[state.pageNum].push({ type: "note", pos: [nx, ny], text: "New note..." });
-    saveState()
+    saveState();
 
     renderAnnotationsForPage(state.pageNum);
   });
