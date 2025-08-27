@@ -1,49 +1,105 @@
 /**
  * Event handling for toolbar buttons
  */
+
+let _keyboardHandler = null; // keep reference to avoid duplicate listeners
+
 export function attachToolbarEvents(handlers) {
   const safe = (fn) => (typeof fn === "function" ? fn : () => {});
   const log  = (msg) => console.log(`[toolbar] ${msg}`);
 
-  // Navigation
-  const prevBtn = document.getElementById("prevPage");
-  const nextBtn = document.getElementById("nextPage");
-  if (prevBtn) prevBtn.addEventListener("click", () => { log("Prev page"); safe(handlers.onPrev)(); });
-  if (nextBtn) nextBtn.addEventListener("click", () => { log("Next page"); safe(handlers.onNext)(); });
+  // ---- helpers ----
+  const q = (id) => document.getElementById(id);
+  const bind = (id, fn, msg) => {
+    const el = q(id);
+    if (!el) return;
+    el.addEventListener("click", () => { if (msg) log(msg); safe(fn)(); });
+  };
+  const bindTool = (id, tool, label) =>
+    bind(id, () => safe(handlers.onToolChange)(tool), `${label} tool`);
 
-  // Zoom
-  const zoomInBtn  = document.getElementById("zoomIn");
-  const zoomOutBtn = document.getElementById("zoomOut");
-  if (zoomInBtn)  zoomInBtn.addEventListener("click",  () => { log("Zoom in");  safe(handlers.onZoomIn)(); });
-  if (zoomOutBtn) zoomOutBtn.addEventListener("click", () => { log("Zoom out"); safe(handlers.onZoomOut)(); });
+  // ---- Navigation ----
+  bind("prevPage", handlers.onPrev, "Prev page");
+  bind("nextPage", handlers.onNext, "Next page");
 
-  // Tools
-  const selectBtn    = document.getElementById("toolSelect");
-  const highlightBtn = document.getElementById("toolHighlight");
-  const noteBtn      = document.getElementById("toolNote");
-  const textBtn      = document.getElementById("toolText");
-  const imageBtn     = document.getElementById("toolImage");
+  // ---- Zoom ----
+  bind("zoomIn",  handlers.onZoomIn,  "Zoom in");
+  bind("zoomOut", handlers.onZoomOut, "Zoom out");
 
-  if (selectBtn)    selectBtn.addEventListener("click",    () => { log("Select tool");    safe(handlers.onToolChange)(null); });
-  if (highlightBtn) highlightBtn.addEventListener("click", () => { log("Highlight tool"); safe(handlers.onToolChange)("highlight"); });
-  if (noteBtn)      noteBtn.addEventListener("click",      () => { log("Note tool");      safe(handlers.onToolChange)("note"); });
-  if (textBtn)      textBtn.addEventListener("click",      () => { log("Text tool");      safe(handlers.onToolChange)("text"); });
-  if (imageBtn)     imageBtn.addEventListener("click",     () => { log("Image tool → open picker"); safe(handlers.onPickImage)(); });
+  // ---- Tools ----
+  bindTool("toolSelect",    null,        "Select");
+  bindTool("toolHighlight", "highlight", "Highlight");
+  bindTool("toolNote",      "note",      "Note");
+  bindTool("toolText",      "text",      "Text");
+  bind("toolImage",         handlers.onPickImage, "Image tool → open picker");
 
-  // Image file input (hidden <input type="file" id="imagePicker" accept="image/*">)
-  const picker = document.getElementById("imagePicker");
+  // ---- Image file input (hidden <input id="imagePicker" accept="image/*">) ----
+  const picker = q("imagePicker");
   if (picker && handlers.onImageSelected) {
     picker.addEventListener("change", (e) => {
       const file = e.target.files?.[0];
       if (file) safe(handlers.onImageSelected)(file);
-      e.target.value = ""; // allow re-picking the same file
+      // allow re-picking the same file
+      e.target.value = "";
     });
   }
 
-  // Download annotated
-  const dlBtn = document.getElementById("btnDownloadAnnotated");
-  if (dlBtn) dlBtn.addEventListener("click", () => {
-    log("Download annotated");
-    safe(handlers.onDownloadAnnotated)();
-  });
+  // ---- Download annotated ----
+  bind("btnDownloadAnnotated", handlers.onDownloadAnnotated, "Download annotated");
+
+  // ---- Undo / Redo ----
+  bind("btnUndo", handlers.onUndo, "Undo");
+  bind("btnRedo", handlers.onRedo, "Redo");
+
+  // Optional a11y hint for screen readers: expose keyboard shortcuts
+  const undoBtn = q("btnUndo");
+  const redoBtn = q("btnRedo");
+  if (undoBtn) undoBtn.setAttribute("aria-keyshortcuts", "Ctrl+Z Meta+Z");
+  if (redoBtn) redoBtn.setAttribute("aria-keyshortcuts", "Ctrl+Shift+Z Ctrl+Y Meta+Shift+Z");
+
+  // ---- Keyboard shortcuts (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y) ----
+  const isEditableTarget = (el) => {
+    if (!el) return false;
+    // standard form controls
+    const tag = el.tagName?.toLowerCase();
+    if (tag === "input" || tag === "textarea") return true;
+    // aria textbox roles
+    if (el.getAttribute?.("role") === "textbox") return true;
+    // native or ancestor contenteditable
+    if (el.isContentEditable) return true;
+    if (el.closest?.("[contenteditable='true']")) return true;
+    // our custom editable area
+    if (el.closest?.(".text-body[contenteditable='true']")) return true;
+    return false;
+    };
+
+  // Remove previous global listener if this gets called again (e.g., hot reload)
+  if (_keyboardHandler) {
+    document.removeEventListener("keydown", _keyboardHandler);
+  }
+
+  _keyboardHandler = (e) => {
+    if (isEditableTarget(e.target)) return;
+
+    // treat both Cmd and Ctrl as modifiers for cross-platform parity
+    const mod = e.metaKey || e.ctrlKey;
+    if (!mod) return;
+
+    const key = e.key.toLowerCase();
+
+    // Undo
+    if (key === "z" && !e.shiftKey) {
+      e.preventDefault();
+      safe(handlers.onUndo)();
+      return;
+    }
+
+    // Redo (Cmd/Ctrl+Shift+Z or Ctrl+Y)
+    if ((key === "z" && e.shiftKey) || key === "y") {
+      e.preventDefault();
+      safe(handlers.onRedo)();
+    }
+  };
+
+  document.addEventListener("keydown", _keyboardHandler);
 }

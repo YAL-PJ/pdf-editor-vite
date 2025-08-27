@@ -1,4 +1,7 @@
 // layout.js — overlay sizing, cursor control, clear helpers
+
+// NOTE: This function is kept for compatibility. Most callers now use
+// syncOverlayToCanvas() from render.js, which mirrors this logic in fewer places.
 export function resizeOverlayToCanvas() {
   const canvas = document.getElementById("pdfCanvas");
   const layer  = document.getElementById("annoLayer");
@@ -23,13 +26,20 @@ export function resizeOverlayToCanvas() {
   }
 }
 
+// Use data-tool to drive cursor via CSS (viewer.css)
+// Example rules:
+//  #annoLayer[data-tool="highlight"] { cursor: crosshair; }
+//  #annoLayer[data-tool="note"]      { cursor: copy; }
+//  #annoLayer[data-tool="text"]      { cursor: text; }        // optional
+//  #annoLayer[data-tool="image"]     { cursor: crosshair; }
 export function setOverlayCursor(tool) {
   const layer = document.getElementById("annoLayer");
   if (!layer) return;
-  layer.style.cursor =
-    tool === "highlight" ? "crosshair" :
-    tool === "note"      ? "pointer"   :
-                           "default";
+  if (tool) {
+    layer.setAttribute("data-tool", tool);
+  } else {
+    layer.removeAttribute("data-tool");
+  }
 }
 
 export function clearOverlay() {

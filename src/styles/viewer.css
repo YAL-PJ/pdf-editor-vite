@@ -35,3 +35,4 @@
 #annoLayer[data-tool="note"]      { cursor: copy; }
 #annoLayer:not([data-tool])       { cursor: default; }
 #annoLayer[data-tool="image"] { cursor: crosshair; }
+#annoLayer[data-tool="text"] { cursor: text; }

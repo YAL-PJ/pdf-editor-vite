@@ -12,6 +12,7 @@
     "vite": "^7.1.2"
   },
   "dependencies": {
+    "immer": "^10.1.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.4.54"
   }

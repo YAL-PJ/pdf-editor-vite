@@ -2,6 +2,8 @@
 import { state } from "@app/state";
 import { saveState } from "@app/persistence";
 import { renderAnnotationsForPage } from "./render";
+import { ensureMutablePageAnnotations } from "@app/utils/state";
+import { historyBegin, historyCommit } from "@app/history";
 
 export function denormalizePoint(nx, ny, cw, ch) {
   return [nx * cw, ny * ch];
@@ -47,9 +49,11 @@ export function initNotePlacement() {
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
     const nx = x / cw, ny = y / ch;
 
-    if (!state.annotations[state.pageNum]) state.annotations[state.pageNum] = [];
-    state.annotations[state.pageNum].push({ type: "note", pos: [nx, ny], text: "New note..." });
+    historyBegin();
+    const bucket = ensureMutablePageAnnotations(state.pageNum);
+    bucket.push({ type: "note", pos: [nx, ny], text: "New note..." });
     saveState();
+    historyCommit();
 
     renderAnnotationsForPage(state.pageNum);
   });

@@ -2,6 +2,8 @@
 import { state } from "@app/state";
 import { renderAnnotationsForPage } from "./render";
 import { saveState } from "@app/persistence";
+import { ensureMutablePageAnnotations } from "@app/utils/state";
+import { historyBegin, historyCommit } from "@app/history";
 
 // create a positioned highlight element
 export function makeHighlightPx({ x, y, w, h }) {
@@ -23,6 +25,26 @@ export function normalizeRect(px, py, pw, ph, cw, ch) {
 
 export function denormalizeRect(nx, ny, nw, nh, cw, ch) {
   return [nx * cw, ny * ch, nw * cw, nh * ch];
+}
+
+/** Ensure the annotations root & the current page bucket are mutable */
+function ensureMutableAnnotations(pageNum) {
+  // If the root object is frozen / non-extensible, replace with a mutable clone
+  if (!state.annotations || !Object.isExtensible(state.annotations) || Object.isFrozen(state.annotations)) {
+    // structuredClone when available; fallback to JSON clone
+    const clone = typeof structuredClone === "function"
+      ? structuredClone(state.annotations || {})
+      : JSON.parse(JSON.stringify(state.annotations || {}));
+    state.annotations = clone;
+  }
+
+  // Ensure the page array exists and is mutable
+  const bucket = state.annotations[pageNum];
+  if (!Array.isArray(bucket)) {
+    state.annotations[pageNum] = [];
+  } else if (!Object.isExtensible(bucket) || Object.isFrozen(bucket)) {
+    state.annotations[pageNum] = bucket.slice(); // shallow mutable copy
+  }
 }
 
 // drag-to-create interaction
@@ -78,12 +100,15 @@ export function initHighlightDrag() {
 
       const cw = canvas.clientWidth, ch = canvas.clientHeight;
       if (w > 3 && h > 3) {
-        if (!state.annotations[state.pageNum]) state.annotations[state.pageNum] = [];
+        const bucket = ensureMutablePageAnnotations(state.pageNum);
         const rectN = normalizeRect(x, y, w, h, cw, ch);
-        state.annotations[state.pageNum].push({ type: "highlight", rect: rectN });
+        historyBegin();
+        bucket.push({ type: "highlight", rect: rectN });
         saveState();
+        historyCommit();
       }
       renderAnnotationsForPage(state.pageNum);
+
     };
 
     document.addEventListener("mousemove", onMove);

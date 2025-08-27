@@ -1,16 +1,12 @@
 /**
  * overlay/text.js
  * Create and edit text boxes on the overlay.
- *
- * UX:
- *  - Select Text tool, mouse down + drag to size, release to create.
- *  - New box opens focused for typing.
- *  - Drag by the thin header; resize with CSS handles; mouseup persists size.
- *  - Press ESC during drag to cancel.
  */
 import { state } from "@app/state";
 import { saveState } from "@app/persistence";
 import { renderAnnotationsForPage } from "./render";
+import { ensureMutablePageAnnotations } from "@app/utils/state";
+import { historyBegin, historyCommit } from "@app/history";
 
 // utils
 function normalizeRect(px, py, pw, ph, cw, ch) {
@@ -44,9 +40,7 @@ export function initTextDrag() {
     if (preview) { preview.remove(); preview = null; }
   }
 
-  function onKey(e) {
-    if (e.key === "Escape") cleanupDrag(); // cancel current placement
-  }
+  function onKey(e) { if (e.key === "Escape") cleanupDrag(); }
 
   function onMove(ev) {
     if (!dragging || !preview) return;
@@ -80,8 +74,8 @@ export function initTextDrag() {
     if (w < 10 || h < 10) return;
 
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
-    if (!state.annotations[state.pageNum]) state.annotations[state.pageNum] = [];
 
+    historyBegin();
     const rectN = normalizeRect(x, y, w, h, cw, ch);
     const ann = {
       type: "text",
@@ -92,17 +86,18 @@ export function initTextDrag() {
       align: "left",
     };
 
-    state.annotations[state.pageNum].push(ann);
+    const bucket = ensureMutablePageAnnotations(state.pageNum);
+    bucket.push(ann);
     saveState();
+    historyCommit();
+
     renderAnnotationsForPage(state.pageNum);
 
-    // Focus the newly created text box (if it exists now)
-    // We look for the last .text-box on the layer and focus its body.
-    const boxes = layer.querySelectorAll(".text-box .text-body");
-    if (boxes.length) {
-      const body = boxes[boxes.length - 1];
+    // Focus the newly created text box
+    const bodies = layer.querySelectorAll(".text-box .text-body");
+    if (bodies.length) {
+      const body = bodies[bodies.length - 1];
       body.focus();
-      // place cursor at end
       const sel = window.getSelection();
       const range = document.createRange();
       range.selectNodeContents(body);
@@ -112,9 +107,8 @@ export function initTextDrag() {
     }
   }
 
-  async function onDown(e) {
+  function onDown(e) {
     if (state.tool !== "text") return;
-    // Don’t start on existing controls
     if (e.target.closest(".sticky-note,.text-box,.image-box")) return;
 
     e.preventDefault();
@@ -139,6 +133,4 @@ export function initTextDrag() {
   }
 
   layer.addEventListener("mousedown", onDown);
-  console.log("[text] mousedown; tool =", state.tool);
-
 }

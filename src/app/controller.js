@@ -6,12 +6,9 @@ import { state } from "@app/state";
 import { ui, setToolbarEnabled, setActiveToolButton } from "@ui/toolbar";
 import { loadPDF } from "@pdf/pdfLoader";
 import { renderPage, getIsRendering } from "@pdf/pdfRenderer";
-import {
-  renderAnnotationsForPage,
-  setOverlayCursor,
-  syncOverlayToCanvas,
-} from "@ui/overlay";
+import { renderAnnotationsForPage, setOverlayCursor, syncOverlayToCanvas } from "@ui/overlay";
 import { saveState } from "./persistence";
+import { undo, redo, historyInit } from "@app/history";
 
 /**
  * Render current page at current zoom.
@@ -22,21 +19,15 @@ export async function rerender() {
 
   setToolbarEnabled(false);
   try {
-    // Render once and grab viewport (pdfRenderer should return it)
     const { viewport } = await renderPage(state.pdfDoc, state.pageNum, state.scale);
-
-    // Keep overlay aligned to canvas
     syncOverlayToCanvas();
 
-    // Save viewport for highlight/note coord mapping
     if (!state.viewports) state.viewports = {};
     state.viewports[state.pageNum] = viewport;
 
-    // Update toolbar labels
     ui.pageNumEl().textContent   = String(state.pageNum);
     ui.zoomLevelEl().textContent = `${Math.round(state.scale * 100)}%`;
 
-    // Rebuild annotations
     renderAnnotationsForPage(state.pageNum, viewport);
   } finally {
     setToolbarEnabled(true);
@@ -45,20 +36,20 @@ export async function rerender() {
 
 /**
  * Open PDF and reset state.
- * @param {File} file The PDF file to open
  */
 export async function openFile(file) {
   const { doc, rawData } = await loadPDF(file);
   state.pdfDoc = doc;
-  state.loadedPdfData = rawData; // keep raw bytes for export/restore
+  state.loadedPdfData = rawData;
   state.pageNum = 1;
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
   await rerender();
+  historyInit();   // reset history baseline
   saveState();
 }
 
 /**
- * Restore the file from saved data in state.
+ * Restore PDF from saved data.
  */
 export async function restoreFile() {
   if (!state.loadedPdfData) {
@@ -67,9 +58,9 @@ export async function restoreFile() {
   }
   const { doc } = await loadPDF(new File([state.loadedPdfData], "restored.pdf"));
   state.pdfDoc = doc;
-
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
   await rerender();
+  historyInit();   // reset baseline after restore
 }
 
 /**
@@ -99,30 +90,24 @@ export const handlers = {
   onToolChange: (tool) => {
     state.tool = tool || null;
     setActiveToolButton(tool || null);
-    setOverlayCursor(tool || null); // updates #annoLayer[data-tool]
+    setOverlayCursor(tool || null);
   },
-
-  // ---- Image flow ----
   onPickImage: () => {
     const picker = document.getElementById("imagePicker");
     if (picker) picker.click();
   },
-
   onImageSelected: async (file) => {
-    // Use DataURL for portability (can also use ObjectURL)
     const toDataURL = (f) =>
       new Promise((res) => {
         const r = new FileReader();
         r.onload = () => res(r.result);
         r.readAsDataURL(f);
       });
-
     state.pendingImageSrc = await toDataURL(file);
     state.tool = "image";
     setActiveToolButton("image");
-    setOverlayCursor("image"); // cursor rule below
+    setOverlayCursor("image");
   },
-
-  // Wire your existing download handler from main.js
-  // onDownloadAnnotated: () => {}
+  onUndo: async () => { if (undo()) await rerender(); },
+  onRedo: async () => { if (redo()) await rerender(); },
 };
