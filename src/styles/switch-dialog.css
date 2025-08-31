@@ -1,0 +1,61 @@
+/* switch-dialog.css — shared modal styles */
+.switchdlg-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 9999;
+}
+
+.switchdlg-card {
+  background: #111827;          /* slate-900 */
+  color: #e5e7eb;               /* slate-200 */
+  padding: 16px 18px;
+  border-radius: 10px;
+  min-width: 320px;
+  max-width: 520px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  outline: none;
+}
+
+.switchdlg-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.switchdlg-body {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.switchdlg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.switchdlg-btn {
+  padding: 8px 10px;
+  border: 1px solid #334155;    /* slate-600 */
+  border-radius: 8px;
+  background: #0b1220;          /* dark panel */
+  color: #e5e7eb;
+  font: inherit;
+  cursor: pointer;
+}
+
+.switchdlg-btn:hover {
+  filter: brightness(1.1);
+}
+
+.switchdlg-btn:focus-visible {
+  outline: 2px solid #60a5fa;   /* blue-400 */
+  outline-offset: 2px;
+}
+
+.switchdlg-btn-secondary {
+  opacity: 0.9;
+}

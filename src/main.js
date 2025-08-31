@@ -121,12 +121,28 @@ initTextDrag();
 initImageDrag();
 createToolbar("toolbar", toolbarHandlers);
 
-// Global ESC: only finish edit (blur) — DO NOT change the tool
+// Overlay can request opening the image picker when no clipboard image exists
+document.addEventListener("annotator:request-image", () => {
+  toolbarHandlers.onPickImage?.();
+});
+
+// Global ESC:
+// - If editing text/note: just blur (keep tool)
+// - If Image tool active and not currently dragging a preview: clear sticky clipboard
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
+
   const active = document.activeElement;
   if (active?.closest?.(".note-body, .text-body")) {
     active.blur();
+    return;
+  }
+
+  if (state.tool === "image") {
+    const draggingPreview = document.querySelector(".image-box.preview");
+    if (!draggingPreview) {
+      state.pendingImageSrc = null; // clear sticky image
+    }
   }
 });
 

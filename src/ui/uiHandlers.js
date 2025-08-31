@@ -9,12 +9,16 @@ export function setupFileInput(onFileSelected) {
     console.error("fileInput element not found in index.html");
     return;
   }
-  input.addEventListener("change", (e) => {
+  input.addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     if (file) {
       console.log("User selected file:", file.name);
-      onFileSelected(file);
+      try {
+        await onFileSelected(file);
+      } finally {
+        // Allow re-selecting the same file if user cancels switching
+        try { e.target.value = ""; } catch {}
+      }
     }
   });
 }
-

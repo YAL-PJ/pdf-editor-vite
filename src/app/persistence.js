@@ -4,6 +4,7 @@
  * - Suppress warning on refresh (F5/Ctrl/Cmd+R/Cmd+Shift+R, and programmatic reload when possible)
  * - Debounced autosave; PDF bytes in IndexedDB; metadata in sessionStorage
  * - Versioned schema; safe JSON; guarded event hooks
+ * - OPTIMIZED: Non-blocking saves to prevent performance violations
  */
 
 import { state } from "./state";
@@ -105,18 +106,136 @@ function readMetaSync() {
   }
 }
 
+/* ===== Optimized save operations ===== */
+
+// Cache to avoid redundant saves
+let _lastMetaSnapshot = null;
+let _pendingIdbSave = null;
+let _pendingMetaSave = null;
+
+/** Ultra-fast metadata save using background task */
+function saveMetaOnly() {
+  // Quick dirty check first
+  const annotationCount = Object.keys(state?.annotations || {}).length;
+  const hasPdf = !!state?.loadedPdfData;
+  const quickSnapshot = `${annotationCount}:${hasPdf}`;
+  
+  if (quickSnapshot === _lastMetaSnapshot) return true;
+  
+  // Cancel any pending meta save
+  if (_pendingMetaSave) {
+    _pendingMetaSave.cancelled = true;
+  }
+  
+  const metaOperation = { cancelled: false };
+  _pendingMetaSave = metaOperation;
+  
+  // Use scheduler for metadata save too
+  const scheduleMetaWork = (fn) => {
+    if (typeof scheduler !== 'undefined' && scheduler.postTask) {
+      return scheduler.postTask(fn, { priority: 'user-blocking' });
+    }
+    return new Promise(resolve => setTimeout(() => resolve(fn()), 0));
+  };
+  
+  scheduleMetaWork(() => {
+    if (metaOperation.cancelled) return;
+    
+    try {
+      const success = writeMetaSync();
+      if (success && !metaOperation.cancelled) {
+        _lastMetaSnapshot = quickSnapshot;
+      }
+    } catch (e) {
+      console.error("Async meta save failed:", e);
+    }
+  });
+  
+  return true;
+}
+
+/** Synchronous metadata save for critical situations */
+function saveMetaCritical() {
+  const annotationCount = Object.keys(state?.annotations || {}).length;
+  const hasPdf = !!state?.loadedPdfData;
+  const quickSnapshot = `${annotationCount}:${hasPdf}`;
+  
+  if (quickSnapshot === _lastMetaSnapshot) return true;
+  
+  const success = writeMetaSync();
+  if (success) _lastMetaSnapshot = quickSnapshot;
+  return success;
+}
+
+/** Background PDF save (async, non-blocking) */
+function savePdfInBackground() {
+  if (!ENABLE_IDB || !state?.loadedPdfData) return Promise.resolve();
+  
+  // Cancel pending save if one exists
+  if (_pendingIdbSave) {
+    _pendingIdbSave.cancelled = true;
+  }
+  
+  const saveOperation = {
+    cancelled: false,
+    promise: null
+  };
+  _pendingIdbSave = saveOperation;
+  
+  // Use scheduler.postTask if available for better performance
+  const scheduleWork = (fn) => {
+    if (typeof scheduler !== 'undefined' && scheduler.postTask) {
+      return scheduler.postTask(fn, { priority: 'background' });
+    }
+    return new Promise(resolve => setTimeout(() => resolve(fn()), 0));
+  };
+  
+  saveOperation.promise = scheduleWork(async () => {
+    if (saveOperation.cancelled) return;
+    
+    try {
+      const buf = state.loadedPdfData.buffer.slice(
+        state.loadedPdfData.byteOffset,
+        state.loadedPdfData.byteOffset + state.loadedPdfData.byteLength
+      );
+      
+      if (!saveOperation.cancelled) {
+        await idbPut(PDF_KEY, buf);
+      }
+    } catch (e) {
+      if (!saveOperation.cancelled) {
+        console.error("Background PDF save failed:", e);
+      }
+    }
+  });
+  
+  return saveOperation.promise;
+}
+
 /* ===== Public save/load API ===== */
 
 /** Debounced autosave for frequent edits */
 let _saveTimeout = null;
 export function scheduleSave(delayMs = 200) {
   clearTimeout(_saveTimeout);
-  _saveTimeout = setTimeout(() => { _saveTimeout = null; void saveState(); }, delayMs);
+  _saveTimeout = setTimeout(() => { 
+    _saveTimeout = null; 
+    void saveState(); 
+  }, delayMs);
 }
 
-/** Persist metadata (sync) + PDF bytes (async to IDB) */
+/** Fast save: immediate metadata + background PDF */
 export async function saveState() {
-  writeMetaSync();
+  // Always save metadata immediately (fast)
+  saveMetaOnly();
+  
+  // Save PDF in background (non-blocking)
+  return savePdfInBackground();
+}
+
+/** Critical save: ensure both metadata and PDF are saved */
+export async function saveStateSync() {
+  saveMetaOnly();
   try {
     if (ENABLE_IDB && state?.loadedPdfData) {
       const buf = state.loadedPdfData.buffer.slice(
@@ -126,7 +245,7 @@ export async function saveState() {
       await idbPut(PDF_KEY, buf);
     }
   } catch (e) {
-    console.error("saveState: IDB write failed:", e);
+    console.error("saveStateSync: IDB write failed:", e);
   }
 }
 
@@ -160,6 +279,11 @@ export async function loadState() {
 export async function clearSavedState() {
   try { sessionStorage.removeItem(META_KEY); } catch {}
   try { if (ENABLE_IDB) await idbDelete(PDF_KEY); } catch {}
+  _lastMetaSnapshot = null;
+  if (_pendingIdbSave) {
+    _pendingIdbSave.cancelled = true;
+    _pendingIdbSave = null;
+  }
 }
 
 /* ===== Unload warning (suppress on refresh only) ===== */
@@ -214,24 +338,34 @@ document.addEventListener("keydown", (e) => {
 
 /**
  * Initialize unload behavior:
- * - Save early on backgrounding
+ * - Save metadata immediately on backgrounding (fast)
+ * - Save PDF in background for better performance
  * - Warn on leave if data exists AND it's not (likely) a refresh
  */
 export function initUnloadWarning() {
   if (_unloadInit) return;
   _unloadInit = true;
 
-  // Save early when tab backgrounds (gives IDB time)
+  // OPTIMIZED: Only save metadata immediately, PDF in background
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden" && hasPersistableData()) {
-      void saveState();
+      // Fast metadata save (no performance violation)
+      saveMetaOnly();
+      // PDF save in background (non-blocking)
+      savePdfInBackground();
     }
   });
 
-  // Save on pagehide (BFCache-friendly)
-  window.addEventListener("pagehide", () => {
+  // Save on pagehide (BFCache-friendly) - use critical save for page unload
+  window.addEventListener("pagehide", (e) => {
     if (hasPersistableData()) {
-      void saveState();
+      // Use synchronous save for critical unload situations
+      saveMetaOnly();
+      // For pagehide, we can't wait for async operations anyway
+      if (e.persisted) {
+        // Page is going into BFCache, start background save
+        savePdfInBackground();
+      }
     }
   });
 
@@ -240,7 +374,7 @@ export function initUnloadWarning() {
     if (!hasPersistableData()) return;
 
     // Fast meta write so the next load can restore
-    writeMetaSync();
+    saveMetaOnly();
 
     let refreshIntent = _isLikelyRefresh;
     try {

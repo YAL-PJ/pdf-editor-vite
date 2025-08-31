@@ -31,16 +31,28 @@ export function attachToolbarEvents(handlers) {
   bindTool("toolHighlight", "highlight", "Highlight");
   bindTool("toolNote",      "note",      "Note");
   bindTool("toolText",      "text",      "Text");
-  bind("toolImage",         handlers.onPickImage, "Image tool → open picker");
 
-  // ---- Image file input (hidden <input id="imagePicker" accept="image/*">) ----
-  const picker = q("imagePicker");
+  // Image tool: set tool to image AND open picker
+  bind("toolImage", () => {
+    safe(handlers.onToolChange)("image");
+    safe(handlers.onPickImage)();
+  }, "Image tool");
+
+  // ---- Image file input (hidden) ----
+  // HTML uses: <input id="imagePickerInput" type="file" accept="image/*" hidden>
+  // Back-compat: also accept legacy id="imagePicker"
+  const picker = q("imagePickerInput") || q("imagePicker");
   if (picker && handlers.onImageSelected) {
-    picker.addEventListener("change", (e) => {
+    picker.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
-      if (file) safe(handlers.onImageSelected)(file);
-      // allow re-picking the same file
-      e.target.value = "";
+      try {
+        if (file) {
+          await safe(handlers.onImageSelected)(file); // sets pendingImageSrc + tool
+        }
+      } finally {
+        // allow re-picking the same file name
+        try { e.target.value = ""; } catch {}
+      }
     });
   }
 
@@ -60,17 +72,13 @@ export function attachToolbarEvents(handlers) {
   // ---- Keyboard shortcuts (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y) ----
   const isEditableTarget = (el) => {
     if (!el) return false;
-    // standard form controls
     const tag = el.tagName?.toLowerCase();
     if (tag === "input" || tag === "textarea") return true;
-    // aria textbox roles
     if (el.getAttribute?.("role") === "textbox") return true;
-    // native or ancestor contenteditable
     if (el.isContentEditable) return true;
     if (el.closest?.("[contenteditable='true']")) return true;
-    // our custom editable areas
     if (el.closest?.(".text-body[contenteditable='true']")) return true;
-    if (el.closest?.(".note-body[contenteditable='true']")) return true; // <-- added
+    if (el.closest?.(".note-body[contenteditable='true']")) return true;
     return false;
   };
 
@@ -82,7 +90,6 @@ export function attachToolbarEvents(handlers) {
   _keyboardHandler = (e) => {
     if (isEditableTarget(e.target)) return;
 
-    // treat both Cmd and Ctrl as modifiers for cross-platform parity
     const mod = e.metaKey || e.ctrlKey;
     if (!mod) return;
 

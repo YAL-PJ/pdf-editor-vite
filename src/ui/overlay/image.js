@@ -26,7 +26,10 @@ export function initImageDrag() {
 
   const local = (evt) => {
     const r = layer.getBoundingClientRect();
-    return { x: clamp(evt.clientX - r.left, 0, r.width), y: clamp(evt.clientY - r.top, 0, r.height) };
+    return {
+      x: clamp(evt.clientX - r.left, 0, r.width),
+      y: clamp(evt.clientY - r.top,  0, r.height),
+    };
   };
 
   async function ensureRatio() {
@@ -79,11 +82,20 @@ export function initImageDrag() {
     x = clamp(x, 0, r.width - w);
     y = clamp(y, 0, r.height - h);
 
-    Object.assign(preview.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` });
+    Object.assign(preview.style, {
+      left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`
+    });
   }
 
   async function onDown(e) {
-    if (state.tool !== "image" || !state.pendingImageSrc) return;
+    if (state.tool !== "image") return;
+
+    // If no sticky image is picked yet, ask main to open the picker and stop.
+    if (!state.pendingImageSrc) {
+      document.dispatchEvent(new CustomEvent("annotator:request-image"));
+      return;
+    }
+
     if (e.target.closest(".sticky-note,.text-box,.image-box")) return;
 
     e.preventDefault();
@@ -94,11 +106,16 @@ export function initImageDrag() {
 
     preview = document.createElement("div");
     preview.className = "image-box preview";
-    Object.assign(preview.style, { left: `${startX}px`, top: `${startY}px`, width: "1px", height: "1px" });
-    preview.style.backgroundImage = `url("${state.pendingImageSrc}")`;
-    preview.style.backgroundSize  = "contain";
-    preview.style.backgroundRepeat = "no-repeat";
-    preview.style.backgroundPosition = "center";
+    Object.assign(preview.style, {
+      left: `${startX}px`,
+      top:  `${startY}px`,
+      width: "1px",
+      height:"1px",
+      backgroundImage: `url("${state.pendingImageSrc}")`,
+      backgroundSize: "contain",
+      backgroundRepeat: "no-repeat",
+      backgroundPosition: "center",
+    });
     layer.appendChild(preview);
 
     dragging = true;
@@ -124,11 +141,15 @@ export function initImageDrag() {
 
     historyBegin();
     const bucket = ensureMutablePageAnnotations(state.pageNum);
-    bucket.push({ type: "image", rect: normalizeRect(x, y, w, h, cw, ch), src: state.pendingImageSrc });
+    bucket.push({
+      type: "image",
+      rect: normalizeRect(x, y, w, h, cw, ch),
+      src: state.pendingImageSrc
+    });
     saveState();
     historyCommit();
 
-    state.pendingImageSrc = null; // one placement per pick
+    // IMPORTANT: keep state.pendingImageSrc to allow sticky multi-placement.
     renderAnnotationsForPage(state.pageNum);
   }
 

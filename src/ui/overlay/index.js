@@ -9,9 +9,11 @@ export { initNotePlacement } from "./notes";
 export { initTextDrag } from "./text";
 export { initImageDrag } from "./image";
 
-// Rendering + sizing
+// Rendering
 export { renderAnnotationsForPage } from "./render";
-export { syncOverlayToCanvas } from "./sizer";   // ⬅️ moved here
+
+// Overlay sizing/alignment
+export { syncOverlayToCanvas } from "./sizer";
 
 // (optional) passthrough config so callers can import from "@ui/overlay"
 export { updateRenderConfig, renderConfig } from "./config";
