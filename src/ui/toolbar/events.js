@@ -68,10 +68,11 @@ export function attachToolbarEvents(handlers) {
     // native or ancestor contenteditable
     if (el.isContentEditable) return true;
     if (el.closest?.("[contenteditable='true']")) return true;
-    // our custom editable area
+    // our custom editable areas
     if (el.closest?.(".text-body[contenteditable='true']")) return true;
+    if (el.closest?.(".note-body[contenteditable='true']")) return true; // <-- added
     return false;
-    };
+  };
 
   // Remove previous global listener if this gets called again (e.g., hot reload)
   if (_keyboardHandler) {

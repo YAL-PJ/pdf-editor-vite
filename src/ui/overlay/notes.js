@@ -40,7 +40,17 @@ export function initNotePlacement() {
 
   layer.addEventListener("click", (e) => {
     if (state.tool !== "note") return;
-    if (e.target.closest(".sticky-note")) return;
+
+    // If we were editing a note, clicking anywhere else just exits edit mode
+    const focused = document.activeElement;
+    if (focused?.closest?.(".note-body")) {
+      focused.blur();
+      document.dispatchEvent(new CustomEvent("annotator:select-tool"));
+      return; // do NOT create a new note
+    }
+
+    // Don't create a note when clicking other overlay items
+    if (e.target.closest(".sticky-note,.text-box,.image-box")) return;
 
     const r = layer.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - r.left, r.width));

@@ -121,6 +121,20 @@ initTextDrag();
 initImageDrag();
 createToolbar("toolbar", toolbarHandlers);
 
+
+// Allow overlay to request switching to Select tool
+document.addEventListener("annotator:select-tool", () => {
+  toolbarHandlers.onToolChange?.(null);
+});
+
+// Global ESC: finish edit and switch to Select
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  const active = document.activeElement;
+  if (active?.closest?.(".note-body, .text-body")) active.blur();
+  if (state.tool) toolbarHandlers.onToolChange?.(null);
+});
+
 setupFileInput(async (picked, ...rest) => {
   // Capture and persist the original file name for later downloads
   const name = extractOriginalName(picked);

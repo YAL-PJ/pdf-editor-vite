@@ -107,11 +107,20 @@ export function initTextDrag() {
     }
   }
 
-  function onDown(e) {
-    if (state.tool !== "text") return;
-    if (e.target.closest(".sticky-note,.text-box,.image-box")) return;
+function onDown(e) {
+  if (state.tool !== "text") return;
 
-    e.preventDefault();
+  // If we were editing a text box, a click elsewhere should just exit edit
+  const focused = document.activeElement;
+  if (focused?.closest?.(".text-body")) {
+    focused.blur();
+    document.dispatchEvent(new CustomEvent("annotator:select-tool"));
+    return; // do NOT start a new drag/create
+  }
+
+  if (e.target.closest(".sticky-note,.text-box,.image-box")) return;
+
+  e.preventDefault();
 
     const p = local(e);
     startX = p.x; startY = p.y;
