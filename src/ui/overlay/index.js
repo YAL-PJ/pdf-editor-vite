@@ -1,7 +1,6 @@
 // Barrel exports for overlay utilities + tools
 
-// From layout: keep commonly used helpers and keep resizeOverlayToCanvas
-// exported for compatibility (some modules may still call it).
+// From layout
 export { setOverlayCursor, clearOverlay, resizeOverlayToCanvas } from "./layout";
 
 // Tool initializers
@@ -10,5 +9,9 @@ export { initNotePlacement } from "./notes";
 export { initTextDrag } from "./text";
 export { initImageDrag } from "./image";
 
-// Rendering + overlay sizing (canonical names live in render.js)
-export { renderAnnotationsForPage, syncOverlayToCanvas } from "./render";
+// Rendering + sizing
+export { renderAnnotationsForPage } from "./render";
+export { syncOverlayToCanvas } from "./sizer";   // ⬅️ moved here
+
+// (optional) passthrough config so callers can import from "@ui/overlay"
+export { updateRenderConfig, renderConfig } from "./config";
