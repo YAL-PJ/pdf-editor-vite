@@ -107,20 +107,20 @@ export function initTextDrag() {
     }
   }
 
-function onDown(e) {
-  if (state.tool !== "text") return;
+  function onDown(e) {
+    if (state.tool !== "text") return;
 
-  // If we were editing a text box, a click elsewhere should just exit edit
-  const focused = document.activeElement;
-  if (focused?.closest?.(".text-body")) {
-    focused.blur();
-    document.dispatchEvent(new CustomEvent("annotator:select-tool"));
-    return; // do NOT start a new drag/create
-  }
+    // If a text box is currently being edited, the first click elsewhere just exits edit.
+    // Do NOT change the tool; do NOT start a new drag on this click.
+    const focused = document.activeElement;
+    if (focused?.closest?.(".text-body")) {
+      focused.blur();
+      return;
+    }
 
-  if (e.target.closest(".sticky-note,.text-box,.image-box")) return;
+    if (e.target.closest(".sticky-note,.text-box,.image-box")) return;
 
-  e.preventDefault();
+    e.preventDefault();
 
     const p = local(e);
     startX = p.x; startY = p.y;
