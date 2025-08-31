@@ -20,6 +20,34 @@ import { loadState, initUnloadWarning, scheduleSave } from "@app/persistence";
 import { historyInit, historyBegin, historyCommit } from "@app/history";
 import "./style.css";
 
+/* ---------- Filename helpers ---------- */
+const makeSaveName = (originalName, marker = " (annotated)") => {
+  if (!originalName) return "annotated.pdf";
+  const dot = originalName.lastIndexOf(".");
+  const base = dot > 0 ? originalName.slice(0, dot) : originalName;
+  const ext  = dot > 0 ? originalName.slice(dot) : ".pdf";
+  const escMarker = marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const cleanBase = base.replace(new RegExp(`${escMarker}$`), "");
+  return `${cleanBase}${marker}${ext}`;
+};
+
+const extractOriginalName = (picked) => {
+  if (!picked) return null;
+  // Event from <input type="file">?
+  const t = picked.target || picked.currentTarget;
+  const filesFromEvent = t?.files;
+  if (filesFromEvent?.[0]?.name) return filesFromEvent[0].name;
+
+  // Direct File or wrapper { file: File }
+  if (picked?.name && typeof picked.name === "string") return picked.name;
+  if (picked?.file?.name) return picked.file.name;
+
+  // Some handlers pass (File, ...rest)
+  if (picked instanceof File && picked.name) return picked.name;
+
+  return null;
+};
+
 /* ---------- Overlay config init (optional but handy) ---------- */
 const persisted = JSON.parse(localStorage.getItem("annotator_prefs") || "{}");
 if (persisted && typeof persisted === "object") {
@@ -81,7 +109,9 @@ const instrumentHandlers = (h) =>
 const toolbarHandlers = {
   onDownloadAnnotated: () => {
     if (!state.loadedPdfData) { alert("Open a PDF first."); return; }
-    downloadAnnotatedPdf(state.loadedPdfData, "annotated.pdf");
+    const orig = state.originalFileName || localStorage.getItem("last_pdf_name");
+    const saveAs = makeSaveName(orig);
+    downloadAnnotatedPdf(state.loadedPdfData, saveAs);
   },
   ...instrumentHandlers(handlers),
 };
@@ -90,15 +120,24 @@ const toolbarHandlers = {
 initTextDrag();
 initImageDrag();
 createToolbar("toolbar", toolbarHandlers);
-setupFileInput(async (...args) => {
+
+setupFileInput(async (picked, ...rest) => {
+  // Capture and persist the original file name for later downloads
+  const name = extractOriginalName(picked);
+  if (name) {
+    state.originalFileName = name;
+    try { localStorage.setItem("last_pdf_name", name); } catch {}
+  }
+
   try {
-    const res = await openFile(...args);
+    const res = await openFile(picked, ...rest);
     scheduleSave(50);
     return res;
   } catch (err) {
     console.error("Failed to open file:", err);
   }
 });
+
 initHighlightDrag();
 initNotePlacement();
 
@@ -106,6 +145,10 @@ initNotePlacement();
 const wasStateRestored = await loadState();
 if (wasStateRestored) {
   try {
+    // Rehydrate name so downloads still use it after refresh/restore
+    const last = localStorage.getItem("last_pdf_name");
+    if (last) state.originalFileName = last;
+
     restoreFile();
     scheduleSave(50);
   } catch (e) {
