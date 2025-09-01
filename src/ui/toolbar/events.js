@@ -1,53 +1,65 @@
 /**
- * Event handling for toolbar buttons
+ * Event handling for toolbar buttons (supports both legacy and new IDs)
  */
 
-let _keyboardHandler = null; // keep reference to avoid duplicate listeners
+let _keyboardHandler = null; // avoid duplicate listeners
 
 export function attachToolbarEvents(handlers) {
   const safe = (fn) => (typeof fn === "function" ? fn : () => {});
   const log  = (msg) => console.log(`[toolbar] ${msg}`);
 
-  // ---- helpers ----
+  // ---------- helpers ----------
   const q = (id) => document.getElementById(id);
-  const bind = (id, fn, msg) => {
-    const el = q(id);
+  const firstEl = (...ids) => ids.map(q).find(Boolean) || null;
+
+  const bind = (ids, fn, msg) => {
+    const el = Array.isArray(ids) ? firstEl(...ids) : q(ids);
     if (!el) return;
     el.addEventListener("click", () => { if (msg) log(msg); safe(fn)(); });
   };
-  const bindTool = (id, tool, label) =>
-    bind(id, () => safe(handlers.onToolChange)(tool), `${label} tool`);
 
-  // ---- Navigation ----
+  const bindTool = (ids, tool, label) =>
+    bind(ids, () => safe(handlers.onToolChange)(tool), `${label} tool`);
+
+  // ---------- Navigation ----------
   bind("prevPage", handlers.onPrev, "Prev page");
   bind("nextPage", handlers.onNext, "Next page");
 
-  // ---- Zoom ----
+  // ---------- Zoom ----------
   bind("zoomIn",  handlers.onZoomIn,  "Zoom in");
   bind("zoomOut", handlers.onZoomOut, "Zoom out");
+  // Optional zoomFit (present in some templates)
+  bind("zoomFit", handlers.onZoomFit, "Zoom fit");
 
-  // ---- Tools ----
-  bindTool("toolSelect",    null,        "Select");
-  bindTool("toolHighlight", "highlight", "Highlight");
-  bindTool("toolNote",      "note",      "Note");
-  bindTool("toolText",      "text",      "Text");
+  // ---------- Tools (support both ID styles) ----------
+  bindTool(["toolSelect", "btnSelect"], null, "Select");
+  bindTool(["toolHighlight", "btnHighlight"], "highlight", "Highlight");
+  bindTool(["toolNote", "btnNote"], "note", "Note");
+  bindTool(["toolText", "btnText"], "text", "Text");
 
-  // Image tool: set tool to image AND open picker
+  // Image tool:
+  // - If template has a combined "toolImage", set tool and immediately open picker
+  // - Otherwise use separate "btnImage" (just select tool) and/or "btnPickImage" (open picker)
   bind("toolImage", () => {
     safe(handlers.onToolChange)("image");
     safe(handlers.onPickImage)();
   }, "Image tool");
 
-  // ---- Image file input (hidden) ----
-  // HTML uses: <input id="imagePickerInput" type="file" accept="image/*" hidden>
-  // Back-compat: also accept legacy id="imagePicker"
-  const picker = q("imagePickerInput") || q("imagePicker");
+  bind("btnImage", () => {
+    safe(handlers.onToolChange)("image");
+  }, "Image tool");
+
+  bind("btnPickImage", handlers.onPickImage, "Pick image");
+
+  // ---------- Hidden file input(s) for images ----------
+  // Preferred: imagePickerInput; Legacy: imagePicker
+  const picker = firstEl("imagePickerInput", "imagePicker");
   if (picker && handlers.onImageSelected) {
     picker.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       try {
         if (file) {
-          await safe(handlers.onImageSelected)(file); // sets pendingImageSrc + tool
+          await safe(handlers.onImageSelected)(file); // should set pendingImageSrc & tool
         }
       } finally {
         // allow re-picking the same file name
@@ -56,20 +68,24 @@ export function attachToolbarEvents(handlers) {
     });
   }
 
-  // ---- Download annotated ----
-  bind("btnDownloadAnnotated", handlers.onDownloadAnnotated, "Download annotated");
+  // ---------- Download annotated (decoupled + back-compat) ----------
+  bind("btnDownloadAnnotated", () => {
+    log("Download annotated");
+    document.dispatchEvent(new CustomEvent("annotator:download-requested"));
+    safe(handlers.onDownloadAnnotated)(); // back-compat if still wired
+  }, "Download annotated");
 
-  // ---- Undo / Redo ----
+  // ---------- Undo / Redo ----------
   bind("btnUndo", handlers.onUndo, "Undo");
   bind("btnRedo", handlers.onRedo, "Redo");
 
-  // Optional a11y hint for screen readers: expose keyboard shortcuts
+  // Optional a11y hint: expose keyboard shortcuts if buttons exist
   const undoBtn = q("btnUndo");
   const redoBtn = q("btnRedo");
   if (undoBtn) undoBtn.setAttribute("aria-keyshortcuts", "Ctrl+Z Meta+Z");
   if (redoBtn) redoBtn.setAttribute("aria-keyshortcuts", "Ctrl+Shift+Z Ctrl+Y Meta+Shift+Z");
 
-  // ---- Keyboard shortcuts (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y) ----
+  // ---------- Keyboard shortcuts (Undo/Redo) ----------
   const isEditableTarget = (el) => {
     if (!el) return false;
     const tag = el.tagName?.toLowerCase();
@@ -82,7 +98,7 @@ export function attachToolbarEvents(handlers) {
     return false;
   };
 
-  // Remove previous global listener if this gets called again (e.g., hot reload)
+  // Remove previous global listener if re-attached (e.g., HMR)
   if (_keyboardHandler) {
     document.removeEventListener("keydown", _keyboardHandler);
   }
@@ -95,7 +111,7 @@ export function attachToolbarEvents(handlers) {
 
     const key = e.key.toLowerCase();
 
-    // Undo
+    // Undo (Cmd/Ctrl+Z)
     if (key === "z" && !e.shiftKey) {
       e.preventDefault();
       safe(handlers.onUndo)();
