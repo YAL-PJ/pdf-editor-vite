@@ -9,6 +9,9 @@
   border-radius: 12px;
   background: var(--panel);
   margin: 12px 0;
+  
+  /* CLS FIX: Reserve minimum height to prevent shifts when buttons load */
+  min-height: 48px;
 }
 
 #toolbar button {
@@ -19,6 +22,10 @@
   border-radius: 8px;
   cursor: pointer;
   transition: border-color .15s ease, background .15s ease, color .15s ease;
+  
+  /* CLS FIX: Ensure consistent button sizing */
+  min-height: 36px;
+  white-space: nowrap;
 }
 
 #toolbar button:hover { border-color: var(--accent); }
@@ -34,4 +41,8 @@
   cursor: not-allowed;
 }
 
-#toolbar span { color: var(--muted); }
+#toolbar span { 
+  color: var(--muted);
+  /* CLS FIX: Prevent text from causing shifts */
+  white-space: nowrap;
+}

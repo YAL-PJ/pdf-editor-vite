@@ -2,18 +2,26 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>PDF Editor MVP</title>
+
+    <!-- Global styles (pulls in src/styles/viewer.css from src/style.css) -->
+    <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <main>
       <h1>PDF Viewer</h1>
 
+      <!-- File picker -->
       <div>
         <label for="fileInput">Select PDF file:</label>
         <input type="file" id="fileInput" accept="application/pdf" />
       </div>
 
+      <!-- Image picker (hidden) -->
       <div>
         <label id="imagePickerLabel" for="imagePickerInput">Add image…</label>
         <input
@@ -25,18 +33,25 @@
         />
       </div>
 
+      <!-- Toolbar has min-height in CSS to avoid CLS -->
       <div id="toolbar" role="toolbar" aria-label="Annotation toolbar"></div>
 
+      <!-- Viewer area:
+           - Start with 'placeholder' so CSS reserves stable aspect/height.
+           - controller.js removes 'placeholder' after first successful render.
+           - .viewer-scroll uses max-height so no first-paint scrollbar CLS. -->
       <div class="viewer-scroll">
-        <div id="viewer">
+        <div id="viewer" class="placeholder">
           <canvas id="pdfCanvas" role="img" aria-label="PDF page canvas"></canvas>
-          <div id="annoLayer" aria-hidden="true"></div>
+          <!-- Do NOT aria-hide the whole overlay; hide decorative children only. -->
+          <div id="annoLayer"></div>
         </div>
       </div>
 
       <noscript>This app requires JavaScript enabled.</noscript>
-
-      <script type="module" src="/src/main.js"></script>
     </main>
+
+    <!-- Vite entry -->
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>

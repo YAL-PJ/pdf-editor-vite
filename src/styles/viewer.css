@@ -1,33 +1,57 @@
-/* File: src/styles/viewer.css */
-
 /* ---------- Viewer ---------- */
 #viewer {
-  position: relative;        /* host absolute overlay */
-  display: inline-block;     /* shrink-wrap to canvas so overlay matches */
+  position: relative;          /* host absolute overlay */
+  display: inline-block;       /* shrink-wrap to canvas so overlay matches */
   border: 1px solid var(--panel-border);
   border-radius: 8px;
-  overflow: visible;         /* don't clip overlay or canvas */
+  overflow: visible;           /* don't clip overlay or canvas */
   background: #0b1022;
   max-width: 100%;
 }
 
-.viewer-scroll {
-  max-height: calc(100vh - 200px);  /* scroll constraint on wrapper */
-  overflow: auto;
+/* Reserve stable area ONLY when no doc is loaded */
+#viewer.placeholder {
+  min-height: 480px;
+  aspect-ratio: 612 / 792;     /* US Letter aspect ratio */
 }
+
+/* Ensure the inner canvas also reserves space during placeholder state */
+#viewer.placeholder #pdfCanvas {
+  width: 100%;
+  height: auto;
+  min-height: 480px;           /* match placeholder min-height */
+  aspect-ratio: inherit;       /* keeps same ratio as #viewer */
+  display: block;
+}
+
+.viewer-scroll {
+  /* Scroll only when content actually exceeds the cap */
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* Let container grow with content; cap when too tall */
+  max-height: calc(100dvh - 200px);
+  min-height: 480px;
+
+  /* Prevent layout jiggle when scrollbar appears */
+  scrollbar-gutter: stable both-edges;
+}
+
+/* Keep whole-page layout stable if body scrollbars appear */
+html { scrollbar-gutter: stable both-edges; }
 
 #pdfCanvas {
   display: block;
   position: relative;
-  z-index: 1;                /* below overlay */
+  z-index: 1;                  /* below overlay */
   max-width: 100%;
-  height: auto;
+  height: auto;                /* keep natural aspect ratio */
 }
 
 /* Overlay sits above canvas and accepts input */
 #annoLayer {
   position: absolute;
-  inset: 0;                  /* left:0; top:0; right:0; bottom:0 */
+  inset: 0;                    /* left:0; top:0; right:0; bottom:0 */
   z-index: 2;
   pointer-events: auto;
 }
@@ -40,16 +64,62 @@
 #annoLayer[data-tool="text"]      { cursor: text; }
 
 /* ---------- Performance optimizations ---------- */
-/* Limit the blast radius of layout and enable smooth transform previews */
 #viewer,
 .viewer-scroll,
 #annoLayer,
 .text-box,
 .image-box {
-  contain: layout paint;     /* reduces forced reflow scope */
+  contain: layout paint;       /* reduces forced reflow scope */
 }
 
 .text-box,
 .image-box {
-  will-change: transform;    /* hint for translate/scale during drag/resize */
+  will-change: transform;      /* smooth translate/scale during drag/resize */
 }
+
+/* ---------- Toolbar ---------- */
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel);
+  margin: 12px 0;
+  min-height: 48px;            /* prevents shifts while toolbar hydrates */
+}
+
+#toolbar button {
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+  min-height: 36px;            /* stable button size */
+  white-space: nowrap;
+}
+
+#toolbar button:hover { border-color: var(--accent); }
+
+#toolbar button.active {
+  background: var(--accent);
+  color: #0b1220;
+  border-color: var(--accent);
+}
+
+#toolbar button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+#toolbar span {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Optional: instant pressed feedback if aria-pressed is set */
+button[aria-pressed="true"] { outline: 2px solid var(--accent, #5ab); }

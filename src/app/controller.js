@@ -5,26 +5,24 @@
 import { state } from "@app/state";
 import { ui, setToolbarEnabled, setActiveToolButton } from "@ui/toolbar";
 import { loadPDF } from "@pdf/pdfLoader";
-import { renderPage, getIsRendering } from "@pdf/pdfRenderer";
+import { getIsRendering } from "@pdf/pdfRenderer";
 import {
   renderAnnotationsForPage,
   setOverlayCursor,
   syncOverlayToCanvas,
   clearOverlay,
 } from "@ui/overlay";
-import {
-  saveState,
-  hasDataToLose,
-  clearSavedState,
-} from "./persistence";
+import { saveState, hasDataToLose, clearSavedState } from "./persistence";
 import { undo, redo, historyInit } from "@app/history";
 import { downloadAnnotatedPdf } from "@pdf/exportAnnotated";
 
-// Modal styles (CSS-only, no inline styles)
 import "../styles/switch-dialog.css";
 
 /* ---------- Small helpers ---------- */
 const getFileInputEl = () => document.getElementById("fileInput");
+const getViewerEl    = () => document.getElementById("viewer");
+const getCanvasEl    = () => document.getElementById("pdfCanvas");
+
 const makeDocId = (file) =>
   file ? `${file.name}|${file.size}|${file.lastModified || 0}` : null;
 
@@ -39,10 +37,7 @@ const makeSaveName = (originalName, marker = " (annotated)") => {
 };
 
 const escapeHtml = (s = "") =>
-  String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 /* ---------- Minimal, accessible switch dialog ---------- */
 function showSwitchDialog(nextName) {
@@ -73,9 +68,7 @@ function showSwitchDialog(nextName) {
       resolve(act);
     }
     function onClick(e) {
-      if (e.target.tagName === "BUTTON") {
-        close(e.target.getAttribute("data-act"));
-      }
+      if (e.target.tagName === "BUTTON") close(e.target.getAttribute("data-act"));
     }
     function onKey(e) {
       if (e.key === "Escape") close("cancel");
@@ -84,7 +77,6 @@ function showSwitchDialog(nextName) {
     root.addEventListener("keydown", onKey);
     document.body.appendChild(root);
 
-    // Focus the first button for keyboard users
     const firstBtn = root.querySelector("button[data-act]");
     firstBtn?.focus();
   });
@@ -92,15 +84,12 @@ function showSwitchDialog(nextName) {
 
 /* ---------- Public: reset the whole document session ---------- */
 export async function resetDocumentState() {
-  // clear canvas
-  const canvas = document.getElementById("pdfCanvas");
+  const canvas = getCanvasEl();
   const ctx = canvas?.getContext?.("2d");
   if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // clear overlay
   clearOverlay?.();
 
-  // clear in-memory state
   state.pdfDoc = null;
   state.loadedPdfData = null;
   state.pageNum = 1;
@@ -110,38 +99,65 @@ export async function resetDocumentState() {
   state.pendingImageSrc = null;
   state.currentDocId = null;
 
-  // reset UI tool state
   setActiveToolButton(null);
   setOverlayCursor(null);
 
-  // clear persisted draft + reset history baseline
+  // Restore "placeholder" so CSS reserves aspect-only space again
+  getViewerEl()?.classList.add("placeholder");
+
   await clearSavedState();
   historyInit();
 }
 
-/* ---------- Render current page ---------- */
+/* ---------- Render current page (CLS-safe + crisp + zoom-preserving) ---------- */
 export async function rerender() {
   if (!state.pdfDoc) return;
-  if (getIsRendering()) return;
+  if (getIsRendering && getIsRendering()) return;
 
   setToolbarEnabled(false);
   try {
-    const { viewport } = await renderPage(state.pdfDoc, state.pageNum, state.scale);
-    syncOverlayToCanvas();
+    const page   = await state.pdfDoc.getPage(state.pageNum);
+    const canvas = getCanvasEl();
+    const viewer = getViewerEl() || canvas?.parentElement;
+    if (!canvas || !viewer) return;
+
+    // 1) Compute scale: fit-to-width * current zoom (state.scale)
+    const baseVp    = page.getViewport({ scale: 1 });
+    const available = Math.max(1, viewer.clientWidth);
+    const fitScale  = available / baseVp.width;
+    const scale     = fitScale * state.scale;
+    const vp        = page.getViewport({ scale });
+
+    // 2) Set CSS box size *before* rendering (prevents CLS),
+    //    then set backing store for crisp output.
+    const dpr  = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    const cssW = Math.round(vp.width);
+    const cssH = Math.round(vp.height);
+
+    canvas.style.width  = `${cssW}px`;  // affects layout
+    canvas.style.height = `${cssH}px`;  // affects layout
+    canvas.width  = cssW * dpr;         // raster only
+    canvas.height = cssH * dpr;         // raster only
+
+    const ctx = canvas.getContext("2d", { alpha: false });
+
+    // 3) Render and keep overlay in sync with the SAME viewport
+    await page.render({ canvasContext: ctx, viewport: vp, intent: "display" }).promise;
 
     if (!state.viewports) state.viewports = {};
-    state.viewports[state.pageNum] = viewport;
+    state.viewports[state.pageNum] = vp;
+
+    syncOverlayToCanvas();
+    renderAnnotationsForPage(state.pageNum, vp);
 
     ui.pageNumEl().textContent   = String(state.pageNum);
     ui.zoomLevelEl().textContent = `${Math.round(state.scale * 100)}%`;
-
-    renderAnnotationsForPage(state.pageNum, viewport);
   } finally {
     setToolbarEnabled(true);
   }
 }
 
-/* ---------- Open PDF (with safe switch guard) ---------- */
+/* ---------- Open PDF ---------- */
 export async function openFile(file) {
   const nextId = makeDocId(file);
   const currId = state.currentDocId || null;
@@ -153,13 +169,11 @@ export async function openFile(file) {
       try { const el = getFileInputEl(); if (el) el.value = ""; } catch {}
       return;
     }
-
     if (choice === "newtab") {
       window.open(window.location.href, "_blank", "noopener");
       try { const el = getFileInputEl(); if (el) el.value = ""; } catch {}
       return;
     }
-
     if (choice === "save") {
       try {
         if (state.loadedPdfData) {
@@ -172,13 +186,13 @@ export async function openFile(file) {
       }
     }
 
-    await resetDocumentState(); // discard current in this window
+    await resetDocumentState();
   }
 
   // Fresh open
   const { doc, rawData } = await loadPDF(file);
 
-  // Clean slate for annotations/UI for the new doc
+  // Defer removing placeholder until after the first render (prevents jump)
   clearOverlay();
   state.pdfDoc = doc;
   state.loadedPdfData = rawData;
@@ -191,12 +205,14 @@ export async function openFile(file) {
   try { if (file?.name) localStorage.setItem("last_pdf_name", file.name); } catch {}
 
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
+
   await rerender();
-  historyInit();   // reset history baseline
+  getViewerEl()?.classList.remove("placeholder"); // remove after first layout-stable render
+  historyInit();
   saveState();
 }
 
-/* ---------- Restore PDF from saved data ---------- */
+/* ---------- Restore PDF ---------- */
 export async function restoreFile() {
   if (!state.loadedPdfData) {
     console.warn("No loaded PDF data to restore.");
@@ -204,11 +220,15 @@ export async function restoreFile() {
   }
   const restoredFile = new File([state.loadedPdfData], "restored.pdf");
   const { doc } = await loadPDF(restoredFile);
+
+  clearOverlay();
   state.pdfDoc = doc;
   state.currentDocId = makeDocId(restoredFile);
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
+
   await rerender();
-  historyInit();   // reset baseline after restore
+  getViewerEl()?.classList.remove("placeholder"); // remove after first layout-stable render
+  historyInit();
 }
 
 /* ---------- Toolbar handlers ---------- */
@@ -233,26 +253,12 @@ export const handlers = {
     state.scale = Math.max(state.scale - 0.1, 0.3);
     await rerender();
   },
-
-    onToolChange: (tool) => {
-    console.time('toolChange-total');
-    
-    console.time('toolChange-state');
+  onToolChange: (tool) => {
     state.tool = tool || null;
-    console.timeEnd('toolChange-state');
-    
-    console.time('toolChange-button');
     setActiveToolButton(tool || null);
-    console.timeEnd('toolChange-button');
-    
-    console.time('toolChange-cursor');
     setOverlayCursor(tool || null);
-    console.timeEnd('toolChange-cursor');
-    
-    console.timeEnd('toolChange-total');
   },
   onPickImage: () => {
-    // ID fixed to match your HTML: #imagePickerInput
     const picker = document.getElementById("imagePickerInput");
     if (picker) picker.click();
   },
@@ -265,7 +271,7 @@ export const handlers = {
         r.readAsDataURL(f);
       });
     try {
-      state.pendingImageSrc = await toDataURL(file); // sticky clipboard
+      state.pendingImageSrc = await toDataURL(file);
       state.tool = "image";
       setActiveToolButton("image");
       setOverlayCursor("image");

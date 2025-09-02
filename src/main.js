@@ -8,10 +8,10 @@ import { updateRenderConfig } from "@ui/overlay/render.js";
 import { bootstrapUI } from "@app/bootstrap";
 import { attachGlobalListeners } from "@app/listeners";
 
-import { createToolbar } from "@ui/toolbar";            // (kept by bootstrap internally; not used here)
-import { initTextDrag, initImageDrag } from "@ui/overlay"; // (kept by bootstrap internally; not used here)
+import { createToolbar } from "@ui/toolbar";              // kept by bootstrap internally
+import { initTextDrag, initImageDrag } from "@ui/overlay"; // kept by bootstrap internally
 
-import { openFile, handlers, restoreFile } from "@app/controller";
+import { openFile, handlers, restoreFile, rerender } from "@app/controller";
 import { loadState, initUnloadWarning, scheduleSave } from "@app/persistence";
 import { historyInit } from "@app/history";
 import { state } from "@app/state";
@@ -19,17 +19,30 @@ import { state } from "@app/state";
 import {
   initFromStorage as initRenderPrefs,
   getPrefs as getRenderPrefs,
-  toggleGuides, cycleEdge, getGuidesEnabled, getEdgePx,
+  toggleGuides,
+  cycleEdge,
+  getGuidesEnabled,
+  getEdgePx,
 } from "@app/renderPrefs";
 import { makeSaveName, extractOriginalName } from "@app/filename";
 import { downloadAnnotatedPdf } from "./pdf/exportAnnotated.js";
+import { initFitObserver } from "@app/fitObserver";
+
+// DEV-ONLY: layout shift logger (✅ safe to delete in prod)
+if (import.meta?.env?.DEV) {
+  import("./dev/layoutShiftDebug.js").then((m) => m.installLayoutShiftLogger());
+}
 
 /* ---------- Constants & safe storage ---------- */
 export const LS_KEYS = { lastName: "last_pdf_name" };
 export const AUTOSAVE_DELAY_MS = 50;
 
-function safeSet(key, value) { try { localStorage.setItem(key, value); } catch {} }
-function safeGet(key) { try { return localStorage.getItem(key); } catch { return null; } }
+function safeSet(key, value) {
+  try { localStorage.setItem(key, value); } catch {}
+}
+function safeGet(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
 
 /* ---------- Initialize render prefs (runtime) ---------- */
 updateRenderConfig(initRenderPrefs());
@@ -54,6 +67,9 @@ const { toolbarHandlers } = bootstrapUI({
   lsKeys: LS_KEYS,
 });
 
+/* ---------- Refit PDF when viewer container resizes ---------- */
+initFitObserver(() => document.getElementById("viewer"), rerender);
+
 /* ---------- Global listeners (HMR-safe) ---------- */
 attachGlobalListeners({
   onRequestImage: () => toolbarHandlers.onPickImage?.(),
@@ -69,7 +85,7 @@ attachGlobalListeners({
   cycleEdge,
   getGuidesEnabled,
   getEdgePx,
-  devMirror: DEV_MIRROR, // DEV-ONLY mirrors to window; ✅ Safe to set false or remove in prod.
+  devMirror: DEV_MIRROR, // DEV-ONLY mirrors to window; ✅ safe to remove in prod
 });
 
 /* ---------- Restore + lifecycle ---------- */
