@@ -1,3 +1,5 @@
+// File: src/ui/toolbar/events.js
+
 /**
  * Event handling for toolbar buttons (supports both legacy and new IDs)
  */
@@ -12,10 +14,15 @@ export function attachToolbarEvents(handlers) {
   const q = (id) => document.getElementById(id);
   const firstEl = (...ids) => ids.map(q).find(Boolean) || null;
 
+  // Optimized bind: defer heavy work to avoid long click tasks
   const bind = (ids, fn, msg) => {
     const el = Array.isArray(ids) ? firstEl(...ids) : q(ids);
     if (!el) return;
-    el.addEventListener("click", () => { if (msg) log(msg); safe(fn)(); });
+    el.addEventListener("click", () => {
+      if (msg) log(msg);
+      // Defer to next frame to keep click task fast
+      requestAnimationFrame(() => safe(fn)());
+    });
   };
 
   const bindTool = (ids, tool, label) =>
@@ -37,12 +44,13 @@ export function attachToolbarEvents(handlers) {
   bindTool(["toolNote", "btnNote"], "note", "Note");
   bindTool(["toolText", "btnText"], "text", "Text");
 
-  // Image tool:
-  // - If template has a combined "toolImage", set tool and immediately open picker
-  // - Otherwise use separate "btnImage" (just select tool) and/or "btnPickImage" (open picker)
+  // Image tool: defer both tool change and picker to avoid blocking
   bind("toolImage", () => {
-    safe(handlers.onToolChange)("image");
-    safe(handlers.onPickImage)();
+    requestAnimationFrame(() => {
+      safe(handlers.onToolChange)("image");
+      // Delay picker slightly to let tool change complete first
+      setTimeout(() => safe(handlers.onPickImage)(), 0);
+    });
   }, "Image tool");
 
   bind("btnImage", () => {
@@ -71,8 +79,11 @@ export function attachToolbarEvents(handlers) {
   // ---------- Download annotated (decoupled + back-compat) ----------
   bind("btnDownloadAnnotated", () => {
     log("Download annotated");
-    document.dispatchEvent(new CustomEvent("annotator:download-requested"));
-    safe(handlers.onDownloadAnnotated)(); // back-compat if still wired
+    // Defer heavy export work
+    requestAnimationFrame(() => {
+      document.dispatchEvent(new CustomEvent("annotator:download-requested"));
+      safe(handlers.onDownloadAnnotated)(); // back-compat if still wired
+    });
   }, "Download annotated");
 
   // ---------- Undo / Redo ----------

@@ -233,10 +233,23 @@ export const handlers = {
     state.scale = Math.max(state.scale - 0.1, 0.3);
     await rerender();
   },
-  onToolChange: (tool) => {
+
+    onToolChange: (tool) => {
+    console.time('toolChange-total');
+    
+    console.time('toolChange-state');
     state.tool = tool || null;
+    console.timeEnd('toolChange-state');
+    
+    console.time('toolChange-button');
     setActiveToolButton(tool || null);
+    console.timeEnd('toolChange-button');
+    
+    console.time('toolChange-cursor');
     setOverlayCursor(tool || null);
+    console.timeEnd('toolChange-cursor');
+    
+    console.timeEnd('toolChange-total');
   },
   onPickImage: () => {
     // ID fixed to match your HTML: #imagePickerInput
