@@ -1,11 +1,11 @@
 // src/app/renderPrefs.js
 const LS_KEY = "annotator_prefs";
 
-// In-memory defaults
-let prefs = {
-  snapToGuides: true,
-  snapEdgePx: 8,
-};
+/** Single source of truth for defaults */
+export const DEFAULT_PREFS = { snapToGuides: true, snapEdgePx: 8 };
+
+/** In-memory state */
+let prefs = { ...DEFAULT_PREFS };
 
 /* ---------- Safe storage ---------- */
 function safeParse(json, fallback) {
@@ -21,7 +21,7 @@ function safeSet(key, value) {
 /* ---------- Public API ---------- */
 export function initFromStorage() {
   const stored = safeParse(safeGet(LS_KEY), {});
-  prefs = { ...prefs, ...(stored && typeof stored === "object" ? stored : {}) };
+  prefs = { ...DEFAULT_PREFS, ...(stored && typeof stored === "object" ? stored : {}) };
   return { ...prefs };
 }
 

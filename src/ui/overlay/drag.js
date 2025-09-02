@@ -1,6 +1,7 @@
 // Generic pointer-drag with snapping/guides + history + debounced save
 import { historyBegin, historyCommit } from "@app/history";
-import { renderConfig, clamp, rafThrottle, snapEdge, snapGrid, scheduleSave } from "./config";
+import { renderConfig, clamp, rafThrottle, snapEdge, snapGrid } from "./config";
+import { scheduleSave } from "@app/persistence";
 import { collectGuides, ensureGuideElems, magneticSnapMove } from "./guides";
 
 export function makeDrag({ getStartLeftTop, getSizeAtStart, applyVisual, clearVisual, commit, pageNum, layer, excludeAnn }) {

@@ -2,7 +2,8 @@ import { makeStickyPx, denormalizePoint } from "../notes";
 import { historyBegin, historyCommit } from "@app/history";
 import { replaceAnn, removeAnn } from "../stateOps";
 import { makeDrag } from "../drag";
-import { scheduleSave } from "../config";
+import { scheduleSave } from "@app/persistence";
+
 
 export function renderNote(layer, ann, pageNum, cw, ch) {
   const [x, y] = denormalizePoint(ann.pos[0], ann.pos[1], cw, ch);

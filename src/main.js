@@ -1,131 +1,76 @@
 /**
  * main.js
- * - Bootstraps UI + persistence
- * - Autosave & history for state-changing handlers
- * - HMR-safe listeners + render prefs module + decoupled download
+ * - Slim orchestrator: init prefs → apply, bootstrap UI, global listeners, persistence lifecycle
  */
-import { createToolbar } from "@ui/toolbar";
-import { setupFileInput } from "@ui/uiHandlers";
-import { openFile, handlers, restoreFile } from "@app/controller";
-import { state } from "@app/state";
-import { initHighlightDrag, initNotePlacement, initTextDrag, initImageDrag } from "@ui/overlay";
+import "./style.css";
+
 import { updateRenderConfig } from "@ui/overlay/render.js";
-import { downloadAnnotatedPdf } from "./pdf/exportAnnotated.js";
+import { bootstrapUI } from "@app/bootstrap";
+import { attachGlobalListeners } from "@app/listeners";
+
+import { createToolbar } from "@ui/toolbar";            // (kept by bootstrap internally; not used here)
+import { initTextDrag, initImageDrag } from "@ui/overlay"; // (kept by bootstrap internally; not used here)
+
+import { openFile, handlers, restoreFile } from "@app/controller";
 import { loadState, initUnloadWarning, scheduleSave } from "@app/persistence";
 import { historyInit } from "@app/history";
-import { wrapHandler } from "@app/handlerWrapper";
+import { state } from "@app/state";
+
 import {
   initFromStorage as initRenderPrefs,
   getPrefs as getRenderPrefs,
   toggleGuides, cycleEdge, getGuidesEnabled, getEdgePx,
 } from "@app/renderPrefs";
 import { makeSaveName, extractOriginalName } from "@app/filename";
-import "./style.css";
+import { downloadAnnotatedPdf } from "./pdf/exportAnnotated.js";
 
 /* ---------- Constants & safe storage ---------- */
 export const LS_KEYS = { lastName: "last_pdf_name" };
 export const AUTOSAVE_DELAY_MS = 50;
-const NS = "annotator";
+
 function safeSet(key, value) { try { localStorage.setItem(key, value); } catch {} }
 function safeGet(key) { try { return localStorage.getItem(key); } catch { return null; } }
 
-/* ---------- Initialize render prefs ---------- */
+/* ---------- Initialize render prefs (runtime) ---------- */
 updateRenderConfig(initRenderPrefs());
-window.__snapGuidesEnabled = getGuidesEnabled();
-window.__snapEdgePx = getEdgePx();
 
-/* ---------- Global listeners (HMR-safe) ---------- */
-let bootstrapped = false;
-
-function onShortcut(e) {
-  const cmd = e.metaKey || e.ctrlKey;
-  if (!cmd) return;
-  const key = e.key.toLowerCase();
-
-  if (key === "g") {
-    e.preventDefault();
-    toggleGuides();
-    updateRenderConfig(getRenderPrefs());
-    window.__snapGuidesEnabled = getGuidesEnabled();
-  } else if (key === "e") {
-    e.preventDefault();
-    cycleEdge();
-    updateRenderConfig(getRenderPrefs());
-    window.__snapEdgePx = getEdgePx();
-  }
+/**
+ * DEV-ONLY mirrors for DevTools + e2e tests.
+ * ✅ SAFE TO DELETE IN PROD (not required at runtime).
+ */
+const DEV_MIRROR = !!import.meta?.env?.DEV;
+if (DEV_MIRROR) {
+  window.__snapGuidesEnabled = getGuidesEnabled();
+  window.__snapEdgePx = getEdgePx();
+  window.__renderPrefs = () => ({ ...getRenderPrefs() });
 }
 
-function onEsc(e) {
-  if (e.key !== "Escape") return;
-  const active = document.activeElement;
-  if (active?.closest?.(".note-body, .text-body")) { active.blur(); return; }
-  if (state.tool === "image") {
-    const draggingPreview = document.querySelector(".image-box.preview");
-    if (!draggingPreview) state.pendingImageSrc = null;
-  }
-}
-
-function onRequestImage() { toolbarHandlers.onPickImage?.(); }
-
-async function onDownloadRequested() {
-  if (!state.loadedPdfData) { alert("Open a PDF first."); return; }
-  const orig = state.originalFileName || safeGet(LS_KEYS.lastName);
-  const saveAs = makeSaveName(orig);
-  downloadAnnotatedPdf(state.loadedPdfData, saveAs);
-}
-
-function attachGlobalListeners() {
-  if (bootstrapped) return;
-  bootstrapped = true;
-  window.addEventListener("keydown", onShortcut);
-  document.addEventListener("keydown", onEsc);
-  document.addEventListener(`${NS}:request-image`, onRequestImage);
-  document.addEventListener(`${NS}:download-requested`, onDownloadRequested);
-
-  if (import.meta?.hot) {
-    import.meta.hot.dispose(() => {
-      window.removeEventListener("keydown", onShortcut);
-      document.removeEventListener("keydown", onEsc);
-      document.removeEventListener(`${NS}:request-image`, onRequestImage);
-      document.removeEventListener(`${NS}:download-requested`, onDownloadRequested);
-      bootstrapped = false;
-    });
-  }
-}
-
-/* ---------- Wrap handlers with autosave + history ---------- */
-const instrumentHandlers = (h) =>
-  Object.fromEntries(Object.entries(h || {}).map(([k, fn]) => [k, wrapHandler(k, fn)]));
-
-/* ---------- Toolbar handlers (no download logic here) ---------- */
-const toolbarHandlers = {
-  ...instrumentHandlers(handlers),
-};
-
-/* ---------- UI init ---------- */
-initTextDrag();
-initImageDrag();
-createToolbar("toolbar", toolbarHandlers);
-attachGlobalListeners();
-
-/* ---------- File input wiring ---------- */
-setupFileInput(async (picked, ...rest) => {
-  const name = extractOriginalName(picked);
-  if (name) {
-    state.originalFileName = name;
-    safeSet(LS_KEYS.lastName, name);
-  }
-  try {
-    const res = await openFile(picked, ...rest);
-    scheduleSave(AUTOSAVE_DELAY_MS);
-    return res;
-  } catch (err) {
-    console.error("Failed to open file:", err);
-  }
+/* ---------- Bootstrap UI (toolbar, overlay tools, file input) ---------- */
+const { toolbarHandlers } = bootstrapUI({
+  handlers,
+  openFile,
+  extractOriginalName,
+  autosaveDelayMs: AUTOSAVE_DELAY_MS,
+  lsKeys: LS_KEYS,
 });
 
-initHighlightDrag();
-initNotePlacement();
+/* ---------- Global listeners (HMR-safe) ---------- */
+attachGlobalListeners({
+  onRequestImage: () => toolbarHandlers.onPickImage?.(),
+  onDownloadRequested: async () => {
+    if (!state.loadedPdfData) { alert("Open a PDF first."); return; }
+    const orig = state.originalFileName || safeGet(LS_KEYS.lastName);
+    const saveAs = makeSaveName(orig);
+    downloadAnnotatedPdf(state.loadedPdfData, saveAs);
+  },
+  updateRenderConfig,
+  getRenderPrefs,
+  toggleGuides,
+  cycleEdge,
+  getGuidesEnabled,
+  getEdgePx,
+  devMirror: DEV_MIRROR, // DEV-ONLY mirrors to window; ✅ Safe to set false or remove in prod.
+});
 
 /* ---------- Restore + lifecycle ---------- */
 const wasStateRestored = await loadState();

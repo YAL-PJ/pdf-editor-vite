@@ -1,6 +1,7 @@
 import { historyBegin, historyCommit } from "@app/history";
 import { replaceAnn, removeAnn } from "../stateOps";
-import { clamp, rafThrottle, renderConfig, snapEdge, snapGrid, scheduleSave } from "../config";
+import { clamp, rafThrottle, renderConfig, snapEdge, snapGrid } from "../config";
+import { scheduleSave } from "@app/persistence";
 import { collectGuides, ensureGuideElems, magneticSnapResize } from "../guides";
 import { makeDrag } from "../drag";
 
