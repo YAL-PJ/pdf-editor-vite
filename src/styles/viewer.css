@@ -1,3 +1,5 @@
+/* File: src/styles/viewer.css */
+
 /* ---------- Viewer ---------- */
 #viewer {
   position: relative;        /* host absolute overlay */
@@ -34,5 +36,20 @@
 #annoLayer[data-tool="highlight"] { cursor: crosshair; }
 #annoLayer[data-tool="note"]      { cursor: copy; }
 #annoLayer:not([data-tool])       { cursor: default; }
-#annoLayer[data-tool="image"] { cursor: crosshair; }
-#annoLayer[data-tool="text"] { cursor: text; }
+#annoLayer[data-tool="image"]     { cursor: crosshair; }
+#annoLayer[data-tool="text"]      { cursor: text; }
+
+/* ---------- Performance optimizations ---------- */
+/* Limit the blast radius of layout and enable smooth transform previews */
+#viewer,
+.viewer-scroll,
+#annoLayer,
+.text-box,
+.image-box {
+  contain: layout paint;     /* reduces forced reflow scope */
+}
+
+.text-box,
+.image-box {
+  will-change: transform;    /* hint for translate/scale during drag/resize */
+}

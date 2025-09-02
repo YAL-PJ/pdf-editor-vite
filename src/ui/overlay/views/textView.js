@@ -1,3 +1,5 @@
+// File: src/ui/overlay/views/textView.js
+
 import { historyBegin, historyCommit } from "@app/history";
 import { replaceAnn, removeAnn } from "../stateOps";
 import { clamp, rafThrottle, renderConfig, snapEdge, snapGrid } from "../config";
@@ -83,7 +85,7 @@ export function renderText(layer, ann, pageNum, cw, ch) {
   });
   head.addEventListener("pointerdown", (e)=>startTextDrag(e, head), { passive: false });
 
-  // resize (handle)
+  // resize (handle) — transform-only preview to avoid layout reflow; commit width/height once
   grip.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     const pid = e.pointerId;
@@ -127,44 +129,85 @@ export function renderText(layer, ann, pageNum, cw, ch) {
       if (alt) { w = snapGrid(w, grid); h = snapGrid(h, grid); }
 
       guideUI.show(gx, gy);
-      box.style.width  = `${w}px`;
-      box.style.height = `${h}px`;
+
+      // Transform-only preview: scale from top-left anchor, no layout thrash
+      const sx = w / startW;
+      const sy = h / startH;
+      box.style.transformOrigin = "0 0";
+      box.style.transform = `scale(${sx}, ${sy})`;
     });
 
     const onMove = (ev) => {
       if (ev.pointerId !== pid) return;
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
-      if (!started && (dx || dy)) { historyBegin(); started = true; document.body.style.userSelect = "none"; }
-      curW = startW + dx; curH = startH + dy; paint();
+      if (!started && (dx || dy)) {
+        historyBegin();
+        started = true;
+        document.body.style.userSelect = "none";
+      }
+      curW = startW + dx;
+      curH = startH + dy;
+      paint();
     };
-    const finish = (cancelled=false) => {
-      try { grip.releasePointerCapture?.(pid); } catch {}
-      document.body.style.userSelect = ""; guideUI.clear();
-      if (cancelled) { ctrl.abort(); return; }
 
+    const finish = (cancelled = false) => {
+      try { grip.releasePointerCapture?.(pid); } catch {}
+      document.body.style.userSelect = "";
+      guideUI.clear();
+
+      if (cancelled) {
+        // Clear transform preview and abort
+        box.style.transform = "";
+        ctrl.abort();
+        return;
+      }
+
+      // Calculate final dimensions with all constraints applied
       const edgeThr = renderConfig.snapEdgePx, grid = renderConfig.gridPx;
       let w = clamp(curW, renderConfig.minTextW, maxW);
       let h = clamp(curH, renderConfig.minTextH, maxH);
-      if (shift) { if (Math.abs(w - startW) >= Math.abs(h - startH)) h = startH; else w = startW; }
-      w = snapEdge(w, maxW, edgeThr); h = snapEdge(h, maxH, edgeThr);
+
+      if (shift) {
+        if (Math.abs(w - startW) >= Math.abs(h - startH)) h = startH;
+        else w = startW;
+      }
+
+      w = snapEdge(w, maxW, edgeThr);
+      h = snapEdge(h, maxH, edgeThr);
+
       if (renderConfig.snapToGuides && (guides.xLines.length || guides.yLines.length)) {
         const s = magneticSnapResize({ leftPx, topPx, w, h, guides, threshold: edgeThr, useGrid: false, grid });
         w = s.newW; h = s.newH;
       }
+
       if (alt) { w = snapGrid(w, grid); h = snapGrid(h, grid); }
 
       const wN = w / cw, hN = h / ch, xN = leftPx / cw, yN = topPx / ch;
       const sizeChanged = (wN !== cur.rect[2]) || (hN !== cur.rect[3]);
+
       if (sizeChanged) {
         const autoFont = Math.max(10, Math.round(h * 0.45));
         const nextFont = cur.fontSize ?? autoFont;
+
         cur = replaceAnn(pageNum, cur, { rect:[xN, yN, wN, hN], fontSize: nextFont });
+
+        // Commit real layout ONCE at the end, then clear transform
+        box.style.transform = "";
+        box.style.width  = `${w}px`;
+        box.style.height = `${h}px`;
         body.style.fontSize = `${cur.fontSize}px`;
-        scheduleSave(); historyCommit();
+
+        scheduleSave();
+        historyCommit();
+      } else {
+        // No size change, just clear the transform preview
+        box.style.transform = "";
       }
+
       ctrl.abort();
     };
+
     const onUp = (ev) => { if (ev.pointerId !== pid) return; finish(false); };
     const onCancel = (ev) => { if (ev.pointerId !== pid) return; finish(true); };
 
