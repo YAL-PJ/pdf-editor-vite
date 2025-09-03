@@ -1,13 +1,15 @@
 /* ---------- Viewer ---------- */
 #viewer {
-  position: relative;          /* host absolute overlay */
-  display: inline-block;       /* shrink-wrap to canvas so overlay matches */
+  position: relative;
+  display: block;              /* no shrink-to-fit */
+  width: max-content;          /* expand to canvas width (can exceed container) */
   border: 1px solid var(--panel-border);
   border-radius: 8px;
-  overflow: visible;           /* don't clip overlay or canvas */
+  overflow: visible;
   background: #0b1022;
-  max-width: 100%;
+  max-width: none;             /* ← remove clamp */
 }
+
 
 /* Reserve stable area ONLY when no doc is loaded */
 #viewer.placeholder {
@@ -27,7 +29,7 @@
 .viewer-scroll {
   /* Scroll only when content actually exceeds the cap */
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
 
   /* Let container grow with content; cap when too tall */
   max-height: calc(100dvh - 200px);
@@ -44,7 +46,7 @@ html { scrollbar-gutter: stable both-edges; }
   display: block;
   position: relative;
   z-index: 1;                  /* below overlay */
-  max-width: 100%;
+  max-width: none;         /* ← remove clamp */
   height: auto;                /* keep natural aspect ratio */
 }
 

@@ -8,6 +8,16 @@
     />
     <title>PDF Editor MVP</title>
 
+    <!-- Critical: reserve toolbar space on first paint to prevent CLS -->
+    <style>
+      /* Minimal critical CSS: only what’s required to prevent layout shift */
+      #toolbar.hydrating {
+        box-sizing: border-box;
+        min-height: 110px;   /* reserve ~2 rows */
+        visibility: hidden;  /* keep space while hydrating */
+      }
+    </style>
+
     <!-- Global styles (pulls in src/styles/viewer.css from src/style.css) -->
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -33,17 +43,13 @@
         />
       </div>
 
-      <!-- Toolbar has min-height in CSS to avoid CLS -->
-      <div id="toolbar" role="toolbar" aria-label="Annotation toolbar"></div>
+      <!-- Toolbar: start hidden but space-reserved to avoid CLS -->
+      <div id="toolbar" class="hydrating" role="toolbar" aria-label="Annotation toolbar"></div>
 
-      <!-- Viewer area:
-           - Start with 'placeholder' so CSS reserves stable aspect/height.
-           - controller.js removes 'placeholder' after first successful render.
-           - .viewer-scroll uses max-height so no first-paint scrollbar CLS. -->
+      <!-- Viewer area -->
       <div class="viewer-scroll">
         <div id="viewer" class="placeholder">
           <canvas id="pdfCanvas" role="img" aria-label="PDF page canvas"></canvas>
-          <!-- Do NOT aria-hide the whole overlay; hide decorative children only. -->
           <div id="annoLayer"></div>
         </div>
       </div>

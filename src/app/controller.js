@@ -5,7 +5,6 @@
 import { state } from "@app/state";
 import { ui, setToolbarEnabled, setActiveToolButton } from "@ui/toolbar";
 import { loadPDF } from "@pdf/pdfLoader";
-import { getIsRendering } from "@pdf/pdfRenderer";
 import {
   renderAnnotationsForPage,
   setOverlayCursor,
@@ -17,6 +16,10 @@ import { undo, redo, historyInit } from "@app/history";
 import { downloadAnnotatedPdf } from "@pdf/exportAnnotated";
 
 import "../styles/switch-dialog.css";
+
+/* ---------- Render serialization (prevents PDF.js double-render) ---------- */
+let _renderTask = null;      // current PDF.js RenderTask, if any
+let _rerenderQueued = false; // flag if a rerender was requested while busy
 
 /* ---------- Small helpers ---------- */
 const getFileInputEl = () => document.getElementById("fileInput");
@@ -112,7 +115,12 @@ export async function resetDocumentState() {
 /* ---------- Render current page (CLS-safe + crisp + zoom-preserving) ---------- */
 export async function rerender() {
   if (!state.pdfDoc) return;
-  if (getIsRendering && getIsRendering()) return;
+
+  // If a render is already running, coalesce requests into a single follow-up.
+  if (_renderTask) {
+    _rerenderQueued = true;
+    return;
+  }
 
   setToolbarEnabled(false);
   try {
@@ -121,9 +129,12 @@ export async function rerender() {
     const viewer = getViewerEl() || canvas?.parentElement;
     if (!canvas || !viewer) return;
 
+    // Use a stable container for "available" width to avoid feedback loops
+    const container = document.querySelector(".viewer-scroll") || viewer.parentElement || viewer;
+
     // 1) Compute scale: fit-to-width * current zoom (state.scale)
     const baseVp    = page.getViewport({ scale: 1 });
-    const available = Math.max(1, viewer.clientWidth);
+    const available = Math.max(1, container.clientWidth);
     const fitScale  = available / baseVp.width;
     const scale     = fitScale * state.scale;
     const vp        = page.getViewport({ scale });
@@ -141,9 +152,18 @@ export async function rerender() {
 
     const ctx = canvas.getContext("2d", { alpha: false });
 
-    // 3) Render and keep overlay in sync with the SAME viewport
-    await page.render({ canvasContext: ctx, viewport: vp, intent: "display" }).promise;
+    // 3) Single active render; PDF.js will throw if we overlap on the same canvas
+    _renderTask = page.render({ canvasContext: ctx, viewport: vp, intent: "display" });
+    try {
+      await _renderTask.promise;
+    } catch (e) {
+      // If you later adopt cancel(), ignore RenderingCancelledException
+      if (e?.name !== "RenderingCancelledException") throw e;
+    } finally {
+      _renderTask = null;
+    }
 
+    // Overlay + UI
     if (!state.viewports) state.viewports = {};
     state.viewports[state.pageNum] = vp;
 
@@ -154,6 +174,13 @@ export async function rerender() {
     ui.zoomLevelEl().textContent = `${Math.round(state.scale * 100)}%`;
   } finally {
     setToolbarEnabled(true);
+  }
+
+  // If more rerenders came in while we were busy, do exactly one more
+  if (_rerenderQueued) {
+    _rerenderQueued = false;
+    await new Promise((r) => requestAnimationFrame(r)); // let layout settle
+    return rerender();
   }
 }
 
@@ -245,11 +272,13 @@ export const handlers = {
   },
   onZoomIn: async () => {
     if (!state.pdfDoc) return;
+    if (import.meta?.env?.DEV) console.count("zoomIn");  // debug counter
     state.scale = Math.min(state.scale + 0.1, 3.0);
     await rerender();
   },
   onZoomOut: async () => {
     if (!state.pdfDoc) return;
+    if (import.meta?.env?.DEV) console.count("zoomOut"); // debug counter
     state.scale = Math.max(state.scale - 0.1, 0.3);
     await rerender();
   },

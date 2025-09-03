@@ -2,14 +2,11 @@
  * main.js
  * - Slim orchestrator: init prefs → apply, bootstrap UI, global listeners, persistence lifecycle
  */
-import "./style.css";
+// import "./style.css"; // ❌ not needed; CSS loaded via <link> in index.html
 
 import { updateRenderConfig } from "@ui/overlay/render.js";
 import { bootstrapUI } from "@app/bootstrap";
 import { attachGlobalListeners } from "@app/listeners";
-
-import { createToolbar } from "@ui/toolbar";              // kept by bootstrap internally
-import { initTextDrag, initImageDrag } from "@ui/overlay"; // kept by bootstrap internally
 
 import { openFile, handlers, restoreFile, rerender } from "@app/controller";
 import { loadState, initUnloadWarning, scheduleSave } from "@app/persistence";
@@ -28,7 +25,7 @@ import { makeSaveName, extractOriginalName } from "@app/filename";
 import { downloadAnnotatedPdf } from "./pdf/exportAnnotated.js";
 import { initFitObserver } from "@app/fitObserver";
 
-// DEV-ONLY: layout shift logger (✅ safe to delete in prod)
+// DEV-ONLY: layout shift logger
 if (import.meta?.env?.DEV) {
   import("./dev/layoutShiftDebug.js").then((m) => m.installLayoutShiftLogger());
 }
@@ -37,20 +34,13 @@ if (import.meta?.env?.DEV) {
 export const LS_KEYS = { lastName: "last_pdf_name" };
 export const AUTOSAVE_DELAY_MS = 50;
 
-function safeSet(key, value) {
-  try { localStorage.setItem(key, value); } catch {}
-}
-function safeGet(key) {
-  try { return localStorage.getItem(key); } catch { return null; }
-}
+function safeSet(key, value) { try { localStorage.setItem(key, value); } catch {} }
+function safeGet(key)        { try { return localStorage.getItem(key); } catch { return null; } }
 
 /* ---------- Initialize render prefs (runtime) ---------- */
 updateRenderConfig(initRenderPrefs());
 
-/**
- * DEV-ONLY mirrors for DevTools + e2e tests.
- * ✅ SAFE TO DELETE IN PROD (not required at runtime).
- */
+/* ---------- DEV mirrors ---------- */
 const DEV_MIRROR = !!import.meta?.env?.DEV;
 if (DEV_MIRROR) {
   window.__snapGuidesEnabled = getGuidesEnabled();
@@ -68,7 +58,11 @@ const { toolbarHandlers } = bootstrapUI({
 });
 
 /* ---------- Refit PDF when viewer container resizes ---------- */
-initFitObserver(() => document.getElementById("viewer"), rerender);
+// Refit PDF when container (not the shrink-wrapping viewer) resizes
+initFitObserver(
+  () => document.querySelector(".viewer-scroll") || document.getElementById("viewer"),
+  rerender
+);
 
 /* ---------- Global listeners (HMR-safe) ---------- */
 attachGlobalListeners({
@@ -85,7 +79,7 @@ attachGlobalListeners({
   cycleEdge,
   getGuidesEnabled,
   getEdgePx,
-  devMirror: DEV_MIRROR, // DEV-ONLY mirrors to window; ✅ safe to remove in prod
+  devMirror: DEV_MIRROR,
 });
 
 /* ---------- Restore + lifecycle ---------- */
@@ -96,9 +90,7 @@ if (wasStateRestored) {
     if (last) state.originalFileName = last;
     restoreFile();
     scheduleSave(AUTOSAVE_DELAY_MS);
-  } catch (e) {
-    console.error("Restore failed", e);
-  }
+  } catch (e) { console.error("Restore failed", e); }
 }
 initUnloadWarning();
 

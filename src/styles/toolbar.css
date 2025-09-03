@@ -1,17 +1,32 @@
 /* ---------- Toolbar ---------- */
 #toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+
+  /* Visual chrome & sizing */
   padding: 10px 12px;
+  margin: 12px 0;
   border: 1px solid var(--panel-border);
   border-radius: 12px;
   background: var(--panel);
-  margin: 12px 0;
-  
-  /* CLS FIX: Reserve minimum height to prevent shifts when buttons load */
-  min-height: 48px;
+
+  /* Reserve up to 2 rows (matches index.html) */
+  min-height: 110px;
+
+  scrollbar-gutter: stable both-edges;
+}
+
+#toolbar > * {
+  flex: 0 1 auto;         /* allow items to shrink, wrap if needed */
+}
+
+#toolbar button svg,
+#toolbar .icon {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
 }
 
 #toolbar button {
@@ -22,8 +37,6 @@
   border-radius: 8px;
   cursor: pointer;
   transition: border-color .15s ease, background .15s ease, color .15s ease;
-  
-  /* CLS FIX: Ensure consistent button sizing */
   min-height: 36px;
   white-space: nowrap;
 }
@@ -41,8 +54,7 @@
   cursor: not-allowed;
 }
 
-#toolbar span { 
+#toolbar span {
   color: var(--muted);
-  /* CLS FIX: Prevent text from causing shifts */
   white-space: nowrap;
 }

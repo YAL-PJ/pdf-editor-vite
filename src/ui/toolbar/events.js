@@ -2,101 +2,115 @@
 
 /**
  * Event handling for toolbar buttons (supports both legacy and new IDs)
+ * - Delegated single listener on #toolbar => no per-button duplicates.
+ * - Idempotent rebinding with AbortController (HMR/re-bootstrap safe).
+ * - Keeps rAF defers for smoothness.
  */
 
-let _keyboardHandler = null; // avoid duplicate listeners
+let _toolbarEvtController = null;
 
 export function attachToolbarEvents(handlers) {
   const safe = (fn) => (typeof fn === "function" ? fn : () => {});
   const log  = (msg) => console.log(`[toolbar] ${msg}`);
 
-  // ---------- helpers ----------
+  // Abort all previously attached listeners (idempotent)
+  if (_toolbarEvtController) _toolbarEvtController.abort();
+  _toolbarEvtController = new AbortController();
+  const { signal } = _toolbarEvtController;
+
   const q = (id) => document.getElementById(id);
   const firstEl = (...ids) => ids.map(q).find(Boolean) || null;
 
-  // Optimized bind: defer heavy work to avoid long click tasks
-  const bind = (ids, fn, msg) => {
-    const el = Array.isArray(ids) ? firstEl(...ids) : q(ids);
-    if (!el) return;
-    el.addEventListener("click", () => {
-      if (msg) log(msg);
-      // Defer to next frame to keep click task fast
-      requestAnimationFrame(() => safe(fn)());
-    });
+  const toolbarEl = q("toolbar");
+  if (!toolbarEl) {
+    console.warn("[toolbar] #toolbar not found; events not attached");
+    return;
+  }
+
+  // Map button ids (including legacy aliases) to click handlers
+  const clickActions = {
+    // Navigation
+    prevPage: () => safe(handlers.onPrev)(),
+    nextPage: () => safe(handlers.onNext)(),
+
+    // Zoom
+    zoomIn:  () => requestAnimationFrame(() => safe(handlers.onZoomIn)()),
+    zoomOut: () => requestAnimationFrame(() => safe(handlers.onZoomOut)()),
+    zoomFit: () => requestAnimationFrame(() => safe(handlers.onZoomFit)()), // optional
+
+    // Tools (new + legacy ids)
+    toolSelect:    () => safe(handlers.onToolChange)(null),
+    btnSelect:     () => safe(handlers.onToolChange)(null),
+
+    toolHighlight: () => safe(handlers.onToolChange)("highlight"),
+    btnHighlight:  () => safe(handlers.onToolChange)("highlight"),
+
+    toolNote:      () => safe(handlers.onToolChange)("note"),
+    btnNote:       () => safe(handlers.onToolChange)("note"),
+
+    toolText:      () => safe(handlers.onToolChange)("text"),
+    btnText:       () => safe(handlers.onToolChange)("text"),
+
+    toolImage:     () => {
+      // Defer tool change, then open picker (keeps click task light)
+      requestAnimationFrame(() => {
+        safe(handlers.onToolChange)("image");
+        setTimeout(() => safe(handlers.onPickImage)(), 0);
+      });
+    },
+    btnImage:      () => safe(handlers.onToolChange)("image"),
+    btnPickImage:  () => safe(handlers.onPickImage)(),
+
+    // Undo/Redo
+    btnUndo: () => safe(handlers.onUndo)(),
+    btnRedo: () => safe(handlers.onRedo)(),
+
+    // Download
+    btnDownloadAnnotated: () => {
+      log("Download annotated");
+      requestAnimationFrame(() => {
+        document.dispatchEvent(new CustomEvent("annotator:download-requested"));
+        safe(handlers.onDownloadAnnotated)(); // back-compat if still wired
+      });
+    },
   };
 
-  const bindTool = (ids, tool, label) =>
-    bind(ids, () => safe(handlers.onToolChange)(tool), `${label} tool`);
+  // Single delegated click listener on the toolbar container
+  toolbarEl.addEventListener(
+    "click",
+    (e) => {
+      const btn = e.target.closest("button");
+      if (!btn || !toolbarEl.contains(btn)) return;
 
-  // ---------- Navigation ----------
-  bind("prevPage", handlers.onPrev, "Prev page");
-  bind("nextPage", handlers.onNext, "Next page");
+      const id = btn.id;
+      const fn = clickActions[id];
+      if (!fn) return;
 
-  // ---------- Zoom ----------
-  bind("zoomIn",  handlers.onZoomIn,  "Zoom in");
-  bind("zoomOut", handlers.onZoomOut, "Zoom out");
-  // Optional zoomFit (present in some templates)
-  bind("zoomFit", handlers.onZoomFit, "Zoom fit");
+      e.preventDefault();
+      fn();
+    },
+    { signal }
+  );
 
-  // ---------- Tools (support both ID styles) ----------
-  bindTool(["toolSelect", "btnSelect"], null, "Select");
-  bindTool(["toolHighlight", "btnHighlight"], "highlight", "Highlight");
-  bindTool(["toolNote", "btnNote"], "note", "Note");
-  bindTool(["toolText", "btnText"], "text", "Text");
-
-  // Image tool: defer both tool change and picker to avoid blocking
-  bind("toolImage", () => {
-    requestAnimationFrame(() => {
-      safe(handlers.onToolChange)("image");
-      // Delay picker slightly to let tool change complete first
-      setTimeout(() => safe(handlers.onPickImage)(), 0);
-    });
-  }, "Image tool");
-
-  bind("btnImage", () => {
-    safe(handlers.onToolChange)("image");
-  }, "Image tool");
-
-  bind("btnPickImage", handlers.onPickImage, "Pick image");
-
-  // ---------- Hidden file input(s) for images ----------
+  // Hidden file input(s) for images (outside toolbar click delegation)
   // Preferred: imagePickerInput; Legacy: imagePicker
   const picker = firstEl("imagePickerInput", "imagePicker");
   if (picker && handlers.onImageSelected) {
-    picker.addEventListener("change", async (e) => {
-      const file = e.target.files?.[0];
-      try {
-        if (file) {
-          await safe(handlers.onImageSelected)(file); // should set pendingImageSrc & tool
+    picker.addEventListener(
+      "change",
+      async (e) => {
+        const file = e.target.files?.[0];
+        try {
+          if (file) await safe(handlers.onImageSelected)(file);
+        } finally {
+          try { e.target.value = ""; } catch {}
         }
-      } finally {
-        // allow re-picking the same file name
-        try { e.target.value = ""; } catch {}
-      }
-    });
+      },
+      { signal }
+    );
   }
 
-  // ---------- Download annotated (decoupled + back-compat) ----------
-  bind("btnDownloadAnnotated", () => {
-    log("Download annotated");
-    // Defer heavy export work
-    requestAnimationFrame(() => {
-      document.dispatchEvent(new CustomEvent("annotator:download-requested"));
-      safe(handlers.onDownloadAnnotated)(); // back-compat if still wired
-    });
-  }, "Download annotated");
-
-  // ---------- Undo / Redo ----------
-  bind("btnUndo", handlers.onUndo, "Undo");
-  bind("btnRedo", handlers.onRedo, "Redo");
-
-  // Optional a11y hint: expose keyboard shortcuts if buttons exist
-  const undoBtn = q("btnUndo");
-  const redoBtn = q("btnRedo");
-  if (undoBtn) undoBtn.setAttribute("aria-keyshortcuts", "Ctrl+Z Meta+Z");
-  if (redoBtn) redoBtn.setAttribute("aria-keyshortcuts", "Ctrl+Shift+Z Ctrl+Y Meta+Shift+Z");
-
-  // ---------- Keyboard shortcuts (Undo/Redo) ----------
+  // Keyboard shortcuts (global). Bind via same controller for clean teardown.
   const isEditableTarget = (el) => {
     if (!el) return false;
     const tag = el.tagName?.toLowerCase();
@@ -109,14 +123,8 @@ export function attachToolbarEvents(handlers) {
     return false;
   };
 
-  // Remove previous global listener if re-attached (e.g., HMR)
-  if (_keyboardHandler) {
-    document.removeEventListener("keydown", _keyboardHandler);
-  }
-
-  _keyboardHandler = (e) => {
+  const onKeyDown = (e) => {
     if (isEditableTarget(e.target)) return;
-
     const mod = e.metaKey || e.ctrlKey;
     if (!mod) return;
 
@@ -136,5 +144,21 @@ export function attachToolbarEvents(handlers) {
     }
   };
 
-  document.addEventListener("keydown", _keyboardHandler);
+  document.addEventListener("keydown", onKeyDown, { signal });
+
+  // A11y: set aria-keyshortcuts if buttons exist (optional)
+  const undoBtn = q("btnUndo");
+  const redoBtn = q("btnRedo");
+  if (undoBtn) undoBtn.setAttribute("aria-keyshortcuts", "Ctrl+Z Meta+Z");
+  if (redoBtn) redoBtn.setAttribute("aria-keyshortcuts", "Ctrl+Shift+Z Ctrl+Y Meta+Shift+Z");
+
+  log("events attached (delegated)");
+}
+  
+/* HMR-safe: when this module is disposed, abort listeners */
+if (import.meta?.hot) {
+  import.meta.hot.dispose(() => {
+    if (_toolbarEvtController) _toolbarEvtController.abort();
+    _toolbarEvtController = null;
+  });
 }

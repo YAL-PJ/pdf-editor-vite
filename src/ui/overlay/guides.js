@@ -101,3 +101,4 @@ export function magneticSnapResize({ leftPx, topPx, w, h, guides, threshold, use
   if (useGrid) { newW = snapGrid(newW, grid); newH = snapGrid(newH, grid); }
   return { newW, newH, gx: snapRight, gy: snapBottom };
 }
+    

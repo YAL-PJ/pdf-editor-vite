@@ -1,4 +1,3 @@
-// src/app/bootstrap.js
 // Bootstraps UI: toolbar, overlay tools, file input wiring, and handler wrapping.
 // No global listeners here; those live in src/app/listeners.js.
 
@@ -31,10 +30,12 @@ export function bootstrapUI({ handlers, openFile, extractOriginalName, autosaveD
   initNotePlacement();
 
   // Toolbar with instrumented handlers; download handled by listeners/main
-  const toolbarHandlers = {
-    ...instrumentHandlers(handlers),
-  };
+  const toolbarHandlers = { ...instrumentHandlers(handlers) };
   createToolbar("toolbar", toolbarHandlers);
+
+  // Reveal toolbar without changing layout (CLS-safe)
+  const tb = document.getElementById("toolbar");
+  if (tb) tb.classList.remove("hydrating");
 
   // Wire file input: store original name for export/restore; open file; autosave
   setupFileInput(async (picked, ...rest) => {
