@@ -38,7 +38,7 @@ export function createToolbarHTML() {
       </div>
 
       <input 
-        id="imagePicker" 
+        id="imagePickerInput" 
         type="file" 
         accept="image/*" 
         style="display: none" 
