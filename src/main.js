@@ -4,7 +4,7 @@
  */
 // import "./style.css"; // ❌ not needed; CSS loaded via <link> in index.html
 
-import { updateRenderConfig } from "@ui/overlay/render.js";
+import { updateRenderConfig } from "@ui/overlay/config.js";
 import { bootstrapUI } from "@app/bootstrap";
 import { attachGlobalListeners } from "@app/listeners";
 
@@ -58,7 +58,6 @@ const { toolbarHandlers } = bootstrapUI({
 });
 
 /* ---------- Refit PDF when viewer container resizes ---------- */
-// Refit PDF when container (not the shrink-wrapping viewer) resizes
 initFitObserver(
   () => document.querySelector(".viewer-scroll") || document.getElementById("viewer"),
   rerender

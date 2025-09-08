@@ -1,20 +1,13 @@
-// src/ui/overlay/config.js
 // NOTE: This module is intentionally PURE (runtime config only).
 // ❗ Do NOT add persistence (localStorage/IDB) or lifecycle hooks here.
 // ❗ Do NOT touch globals like window.__... here.
-// Persistence & lifecycle live in @app/persistence and main.js.
+import { DEFAULT_RENDER_CONFIG } from '@config/defaults';
 
 /** Public config (tweak at runtime) */
-export const renderConfig = {
-  snapEdgePx: 8,
-  gridPx: 16,
-  minTextW: 60,
-  minTextH: 32,
-  snapToGuides: true,
-};
+export const renderConfig = { ...DEFAULT_RENDER_CONFIG };
 
 export function updateRenderConfig(patch = {}) {
-  Object.assign(renderConfig, patch);
+  Object.assign(renderConfig, patch); // shallow merge into shared object
 }
 
 /** Small utils used across overlay modules */

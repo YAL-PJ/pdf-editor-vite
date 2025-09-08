@@ -1,47 +1,46 @@
-// src/app/renderPrefs.js
-const LS_KEY = "annotator_prefs";
+import { DEFAULT_RENDER_PREFS } from '@config/defaults';
+import { safeStorage } from '@app/safeStorage';
+import { updateRenderConfig } from '@ui/overlay/config';
 
-/** Single source of truth for defaults */
-export const DEFAULT_PREFS = { snapToGuides: true, snapEdgePx: 8 };
+const LS_KEY = 'annotator_prefs';
 
-/** In-memory state */
-let prefs = { ...DEFAULT_PREFS };
-
-/* ---------- Safe storage ---------- */
-function safeParse(json, fallback) {
-  try { return JSON.parse(json); } catch { return fallback; }
-}
-function safeGet(key) {
-  try { return globalThis.localStorage?.getItem(key) ?? null; } catch { return null; }
-}
-function safeSet(key, value) {
-  try { globalThis.localStorage?.setItem(key, value); } catch {}
-}
+/** In-memory state (start from defaults) */
+let prefs = { ...DEFAULT_RENDER_PREFS };
 
 /* ---------- Public API ---------- */
 export function initFromStorage() {
-  const stored = safeParse(safeGet(LS_KEY), {});
-  prefs = { ...DEFAULT_PREFS, ...(stored && typeof stored === "object" ? stored : {}) };
-  return { ...prefs };
+  const stored = safeStorage.parse(safeStorage.get(LS_KEY), {});
+  prefs = { ...DEFAULT_RENDER_PREFS, ...(stored && typeof stored === 'object' ? stored : {}) };
+  return { ...prefs }; // copy-out
 }
 
 export function getPrefs() {
-  return { ...prefs };
+  return { ...prefs }; // copy-out
 }
 
 export function setPrefs(patch) {
   prefs = { ...prefs, ...(patch || {}) };
-  safeSet(LS_KEY, JSON.stringify(prefs));
-  return { ...prefs };
+  safeStorage.set(LS_KEY, JSON.stringify(prefs));
+  return { ...prefs }; // copy-out
+}
+
+/** Persist prefs and also apply to live runtime config */
+export function applyAndSave(patch) {
+  const next = setPrefs(patch);
+  updateRenderConfig(next);
+  return next;
 }
 
 export function toggleGuides() {
-  return setPrefs({ snapToGuides: !prefs.snapToGuides });
+  return applyAndSave({ snapToGuides: !prefs.snapToGuides });
 }
 
+const EDGE_STEPS = [8, 12, 16, 4]; // clearer than modulo trick
 export function cycleEdge() {
-  const next = ((prefs.snapEdgePx ?? 8) % 16) + 4; // 8→12→16→4...
-  return setPrefs({ snapEdgePx: next });
+  const current = +prefs.snapEdgePx || DEFAULT_RENDER_PREFS.snapEdgePx;
+  const idx = EDGE_STEPS.indexOf(current);
+  const next = EDGE_STEPS[(idx >= 0 ? idx + 1 : 0) % EDGE_STEPS.length];
+  return applyAndSave({ snapEdgePx: next });
 }
 
 export function getGuidesEnabled() {
@@ -49,5 +48,6 @@ export function getGuidesEnabled() {
 }
 
 export function getEdgePx() {
-  return +prefs.snapEdgePx || 8;
+  const n = +prefs.snapEdgePx || DEFAULT_RENDER_PREFS.snapEdgePx;
+  return Math.max(4, Math.min(32, n)); // clamp for safety
 }

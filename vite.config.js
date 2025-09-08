@@ -6,6 +6,7 @@ export default defineConfig({
       '@app': '/src/app',
       '@pdf': '/src/pdf',
       '@ui' : '/src/ui',
+      '@config': '/src/config', 
     },
   },
 });
