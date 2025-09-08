@@ -2,7 +2,6 @@
  * main.js
  * - Slim orchestrator: init prefs → apply, bootstrap UI, global listeners, persistence lifecycle
  */
-// import "./style.css"; // ❌ not needed; CSS loaded via <link> in index.html
 
 import { updateRenderConfig } from "@ui/overlay/config.js";
 import { bootstrapUI } from "@app/bootstrap";
