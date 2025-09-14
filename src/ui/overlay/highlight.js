@@ -1,5 +1,5 @@
 // highlight.js — highlight helpers + drag interaction
-import { state } from "@app/state";
+import { state, markAnnotationsChanged } from "@app/state";
 import { renderAnnotationsForPage } from "./render";
 import { saveState } from "@app/persistence";
 import { ensureMutablePageAnnotations } from "@app/utils/state";
@@ -103,8 +103,7 @@ export function initHighlightDrag() {
         const bucket = ensureMutablePageAnnotations(state.pageNum);
         const rectN = normalizeRect(x, y, w, h, cw, ch);
         historyBegin();
-        bucket.push({ type: "highlight", rect: rectN });
-        saveState();
+        bucket.push({ type: "highlight", rect: rectN });\n        markAnnotationsChanged();\n        saveState();
         historyCommit();
       }
       renderAnnotationsForPage(state.pageNum);
@@ -115,3 +114,4 @@ export function initHighlightDrag() {
     document.addEventListener("mouseup", onUp);
   });
 }
+

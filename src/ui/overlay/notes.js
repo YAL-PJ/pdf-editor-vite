@@ -1,5 +1,5 @@
 // notes.js — sticky note helpers + click-to-place + edit + delete
-import { state } from "@app/state";
+import { state, markAnnotationsChanged } from "@app/state";
 import { saveState } from "@app/persistence";
 import { renderAnnotationsForPage } from "./render";
 import { ensureMutablePageAnnotations } from "@app/utils/state";
@@ -59,8 +59,7 @@ export function makeStickyPx({ x, y, text = "" }) {
     }
     if (bestIdx >= 0 && bestDist < 0.02 * 0.02) {
       const t = body.textContent.replace(/\u00A0/g, " ").replace(/\s+$/,"");
-      bucket[bestIdx].text = t;
-      saveState();
+      bucket[bestIdx].text = t;\n      markAnnotationsChanged();\n      saveState();
     }
   };
 
@@ -124,8 +123,7 @@ export function initNotePlacement() {
     historyBegin();
     const bucket = ensureMutablePageAnnotations(state.pageNum);
     // Start empty; CSS placeholder will show, and we'll autofocus it below
-    bucket.push({ type: "note", pos: [nx, ny], text: "" });
-    saveState();
+    bucket.push({ type: "note", pos: [nx, ny], text: "" });\n    markAnnotationsChanged();\n    saveState();
     historyCommit();
 
     renderAnnotationsForPage(state.pageNum);

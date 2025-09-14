@@ -2,7 +2,7 @@
  * overlay/image.js
  * Place and resize images on the overlay with aspect-ratio support.
  */
-import { state } from "@app/state";
+import { state, markAnnotationsChanged } from "@app/state";
 import { saveState } from "@app/persistence";
 import { ensureMutablePageAnnotations } from "@app/utils/state";
 import { renderAnnotationsForPage } from "./index";
@@ -155,3 +155,4 @@ export function initImageDrag() {
 
   layer.addEventListener("mousedown", onDown);
 }
+

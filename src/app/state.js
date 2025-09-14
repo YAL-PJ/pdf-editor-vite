@@ -28,6 +28,12 @@ export const state = {
   pendingImageSrc: null, // dataURL of the image just picked (awaiting placement)
 };
 
+// ---- Version bump helper ----
+export function markAnnotationsChanged() {
+  state.annotationsVersion = (state.annotationsVersion || 0) + 1;
+  return state.annotationsVersion;
+}
+
 // ---- Safe getters/setters for annotations container ----
 
 /**

@@ -1,6 +1,6 @@
 // src/app/history.js
 import { produce } from "immer";
-import { state } from "@app/state";
+import { state, markAnnotationsChanged } from "@app/state";
 
 /** Efficient, shared snapshot via Immer */
 function takeSnapshot() {
@@ -22,7 +22,7 @@ function restoreSnapshot(snap) {
   if (!snap) return;
   state.pageNum = snap.pageNum;
   state.scale   = snap.scale;
-  state.annotations = deepClone(snap.annotations || {});
+  state.annotations = deepClone(snap.annotations || {});\n  markAnnotationsChanged();
 }
 
 const MAX = 100;
@@ -64,3 +64,4 @@ export function redo() {
   restoreSnapshot(present);
   return true;
 }
+
