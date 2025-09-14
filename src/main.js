@@ -21,7 +21,7 @@ import {
   getEdgePx,
 } from "@app/renderPrefs";
 import { makeSaveName, extractOriginalName } from "@app/filename";
-import { downloadAnnotatedPdf } from "./pdf/exportAnnotated.js";
+import { downloadAnnotatedPdf } from "@pdf/exportAnnotated";
 import { initFitObserver } from "@app/fitObserver";
 
 // DEV-ONLY: layout shift logger
