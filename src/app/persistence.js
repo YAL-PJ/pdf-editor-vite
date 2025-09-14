@@ -25,6 +25,12 @@ const isTyping = (el) => !!el && (
 const hasPersistableData = () =>
   !!(state?.loadedPdfData || Object.keys(state?.annotations || {}).length);
 
+// Use version if available; fall back to count for older states
+function getAnnoVersion() {
+  const v = state?.annotationsVersion ?? 0;
+  return (Number.isFinite(v) && v > 0) ? v : Object.keys(state?.annotations || {}).length;
+}
+
 function safeSerialize(obj) {
   const seen = new WeakSet();
   return JSON.parse(JSON.stringify(obj, (k, v) => {
@@ -38,9 +44,11 @@ function safeSerialize(obj) {
 }
 
 /* ===== IndexedDB (vanilla) ===== */
+let _dbPromise = null;
 function openDb() {
   if (!ENABLE_IDB) return Promise.reject(new Error("IndexedDB unavailable"));
-  return new Promise((resolve, reject) => {
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VER);
     req.onupgradeneeded = () => {
       const db = req.result;
@@ -49,6 +57,7 @@ function openDb() {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error || new Error("IndexedDB open failed"));
   });
+  return _dbPromise;
 }
 
 function idbPut(key, value) {
@@ -86,6 +95,7 @@ function writeMetaSync() {
       ver: 2,
       savedAt: nowTs(),
       hasPdf: !!state?.loadedPdfData,
+      annoVer: getAnnoVersion(),
       annotations, // keep human-readable
     };
     sessionStorage.setItem(META_KEY, JSON.stringify(meta));
@@ -116,9 +126,7 @@ let _pendingMetaSave = null;
 /** Ultra-fast metadata save using background task */
 function saveMetaOnly() {
   // Quick dirty check first
-  const annotationCount = Object.keys(state?.annotations || {}).length;
-  const hasPdf = !!state?.loadedPdfData;
-  const quickSnapshot = `${annotationCount}:${hasPdf}`;
+  const quickSnapshot = `${getAnnoVersion()}:${!!state?.loadedPdfData}`;
   
   if (quickSnapshot === _lastMetaSnapshot) return true;
   
@@ -156,9 +164,7 @@ function saveMetaOnly() {
 
 /** Synchronous metadata save for critical situations */
 function saveMetaCritical() {
-  const annotationCount = Object.keys(state?.annotations || {}).length;
-  const hasPdf = !!state?.loadedPdfData;
-  const quickSnapshot = `${annotationCount}:${hasPdf}`;
+  const quickSnapshot = `${getAnnoVersion()}:${!!state?.loadedPdfData}`;
   
   if (quickSnapshot === _lastMetaSnapshot) return true;
   
@@ -372,6 +378,11 @@ export function initUnloadWarning() {
   // Warn on leave unless we detected refresh intent
   window.addEventListener("beforeunload", (e) => {
     if (!hasPersistableData()) return;
+
+    // Require a real user gesture in this frame (Chrome policy)
+    const ua = navigator.userActivation;
+    const hadGesture = !!(ua?.isActive || ua?.hasBeenActive);
+    if (!hadGesture) return;
 
     // Fast meta write so the next load can restore
     saveMetaOnly();

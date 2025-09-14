@@ -19,6 +19,8 @@ export const state = {
   // text:      { type:'text',      rect:[x,y,w,h], text:string, fontSize:number, color:string, align:'left'|'center'|'right' }
   // image:     { type:'image',     rect:[x,y,w,h], src:string }  // src is a dataURL
   annotations: {},
+  // Bumped on ANY annotation mutation; used for persistence snapshots
+  annotationsVersion: 0,
 
   // Per-page PDF.js viewports
   viewports: {},
@@ -42,6 +44,7 @@ export function setAnnotations(nextAnnotations) {
     }
   }
   state.annotations = out;
+  state.annotationsVersion = (state.annotationsVersion || 0) + 1;
   return state.annotations;
 }
 
@@ -59,6 +62,7 @@ export function setPageAnnotations(pageNum, list) {
   const prev = state.annotations || {};
   const next = { ...prev, [pageNum]: Array.isArray(list) ? list.slice() : [] };
   state.annotations = next;
+  state.annotationsVersion = (state.annotationsVersion || 0) + 1;
   return state.annotations[pageNum];
 }
 
