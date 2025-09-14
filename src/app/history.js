@@ -22,7 +22,8 @@ function restoreSnapshot(snap) {
   if (!snap) return;
   state.pageNum = snap.pageNum;
   state.scale   = snap.scale;
-  state.annotations = deepClone(snap.annotations || {});\n  markAnnotationsChanged();
+  state.annotations = deepClone(snap.annotations || {});
+  markAnnotationsChanged();
 }
 
 const MAX = 100;
@@ -46,7 +47,7 @@ export function historyBegin() {
 // Call AFTER a state change
 export function historyCommit() {
   present = takeSnapshot();
-  future.length = 0; // new branch → clear redo
+  future.length = 0; // new branch + clear redo
 }
 
 export function undo() {

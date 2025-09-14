@@ -261,7 +261,12 @@ export async function loadState() {
   if (!meta || (meta.ver !== 2 && meta.ver !== 1)) return false;
 
   try {
-    state.annotations = meta.annotations || {};\n    if (typeof meta.annoVer === "number") { try { state.annotationsVersion = meta.annoVer; } catch {} } else { try { state.annotationsVersion = Object.keys(state.annotations||{}).length; } catch {} }
+    state.annotations = meta.annotations || {};
+    if (typeof meta.annoVer === "number") {
+      try { state.annotationsVersion = meta.annoVer; } catch {}
+    } else {
+      try { state.annotationsVersion = Object.keys(state.annotations||{}).length; } catch {}
+    }
     if ((meta.hasPdf || meta.hasPdf === undefined) && ENABLE_IDB) {
       const buf = await idbGet(PDF_KEY);
       if (buf instanceof ArrayBuffer) {
@@ -338,7 +343,7 @@ document.addEventListener("keydown", (e) => {
     }
     // If not writable/configurable, we don't patch (no error).
   } catch {
-    // ignore – some engines throw on introspection
+    // ignore - some engines throw on introspection
   }
 })();
 
