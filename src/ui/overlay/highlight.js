@@ -103,7 +103,9 @@ export function initHighlightDrag() {
         const bucket = ensureMutablePageAnnotations(state.pageNum);
         const rectN = normalizeRect(x, y, w, h, cw, ch);
         historyBegin();
-        bucket.push({ type: "highlight", rect: rectN });\n        markAnnotationsChanged();\n        saveState();
+        bucket.push({ type: "highlight", rect: rectN });
+        markAnnotationsChanged();
+        saveState();
         historyCommit();
       }
       renderAnnotationsForPage(state.pageNum);

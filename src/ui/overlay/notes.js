@@ -59,7 +59,9 @@ export function makeStickyPx({ x, y, text = "" }) {
     }
     if (bestIdx >= 0 && bestDist < 0.02 * 0.02) {
       const t = body.textContent.replace(/\u00A0/g, " ").replace(/\s+$/,"");
-      bucket[bestIdx].text = t;\n      markAnnotationsChanged();\n      saveState();
+      bucket[bestIdx].text = t;
+      markAnnotationsChanged();
+      saveState();
     }
   };
 
@@ -123,7 +125,9 @@ export function initNotePlacement() {
     historyBegin();
     const bucket = ensureMutablePageAnnotations(state.pageNum);
     // Start empty; CSS placeholder will show, and we'll autofocus it below
-    bucket.push({ type: "note", pos: [nx, ny], text: "" });\n    markAnnotationsChanged();\n    saveState();
+    bucket.push({ type: "note", pos: [nx, ny], text: "" });
+      markAnnotationsChanged();
+      saveState();
     historyCommit();
 
     renderAnnotationsForPage(state.pageNum);
@@ -143,3 +147,4 @@ export function initNotePlacement() {
   });
 }
   
+

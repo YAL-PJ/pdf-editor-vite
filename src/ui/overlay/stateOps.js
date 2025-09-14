@@ -16,7 +16,8 @@ export function setPageList(pageNum, newList) {
     if (typeof state.setAnnotations === "function") state.setAnnotations(nextAnns);
     else console.warn("[render] annotations container is read-only; updates may not persist.");
   }
-  markAnnotationsChanged();`n  return getPageList(pageNum);
+  markAnnotationsChanged();
+  return getPageList(pageNum);
 }
 
 export function replaceAnn(pageNum, oldAnn, patch) {
