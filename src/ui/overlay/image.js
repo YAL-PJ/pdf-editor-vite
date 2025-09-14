@@ -140,12 +140,13 @@ export function initImageDrag() {
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
 
     historyBegin();
-    const bucket = ensureMutablePageAnnotations(state.pageNum);
-    bucket.push({
-      type: "image",
-      rect: normalizeRect(x, y, w, h, cw, ch),
-      src: state.pendingImageSrc
-    });
+  const bucket = ensureMutablePageAnnotations(state.pageNum);
+  bucket.push({
+    type: "image",
+    rect: normalizeRect(x, y, w, h, cw, ch),
+    src: state.pendingImageSrc
+  });
+    markAnnotationsChanged();
     saveState();
     historyCommit();
 

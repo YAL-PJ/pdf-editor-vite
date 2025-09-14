@@ -87,7 +87,9 @@ export function initTextDrag() {
     };
 
     const bucket = ensureMutablePageAnnotations(state.pageNum);
-    bucket.push(ann);\n    markAnnotationsChanged();\n    saveState();
+    bucket.push(ann);
+    markAnnotationsChanged();
+    saveState();
     historyCommit();
 
     renderAnnotationsForPage(state.pageNum);
