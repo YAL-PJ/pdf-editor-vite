@@ -21,7 +21,6 @@ import {
   getEdgePx,
 } from "@app/renderPrefs";
 import { makeSaveName, extractOriginalName } from "@app/filename";
-import { downloadAnnotatedPdf } from "@pdf/exportAnnotated";
 import { initFitObserver } from "@app/fitObserver";
 
 // DEV-ONLY: layout shift logger
@@ -69,7 +68,7 @@ function chooseAutosaveDelay() {
   return ms;
 }
 
-export const AUTOSAVE_DELAY_MS = chooseAutosaveDelay();
+export const AUTOSAVE_DELAY_MS = Math.max(40, Math.min(240, chooseAutosaveDelay()));
 
 /* ---------- Initialize render prefs (runtime) ---------- */
 updateRenderConfig(initRenderPrefs());
@@ -86,6 +85,8 @@ if (DEV_MIRROR && typeof window !== "undefined") {
   });
 
   dbg.print = () => console.table(dbg.renderPrefs);
+  dbg.toggleGuides = () => toggleGuides();
+  dbg.cycleEdge    = () => cycleEdge();
   // console.info("[dev] Debug mirrors at window.__appDebug");
 }
 
@@ -111,6 +112,7 @@ attachGlobalListeners({
     if (!state.loadedPdfData) { alert("Open a PDF first."); return; }
     const orig = state.originalFileName || safeGet(LS_KEYS.lastName);
     const saveAs = makeSaveName(orig);
+    const { downloadAnnotatedPdf } = await import("@pdf/exportAnnotated");
     downloadAnnotatedPdf(state.loadedPdfData, saveAs);
   },
   updateRenderConfig,
