@@ -2,7 +2,7 @@
  * overlay/text.js
  * Create and edit text boxes on the overlay.
  */
-import { state } from "@app/state";
+import { state, markAnnotationsChanged } from "@app/state";
 import { saveState } from "@app/persistence";
 import { renderAnnotationsForPage } from "./render";
 import { ensureMutablePageAnnotations } from "@app/utils/state";
@@ -87,8 +87,7 @@ export function initTextDrag() {
     };
 
     const bucket = ensureMutablePageAnnotations(state.pageNum);
-    bucket.push(ann);
-    saveState();
+    bucket.push(ann);\n    markAnnotationsChanged();\n    saveState();
     historyCommit();
 
     renderAnnotationsForPage(state.pageNum);
@@ -143,3 +142,4 @@ export function initTextDrag() {
 
   layer.addEventListener("mousedown", onDown);
 }
+

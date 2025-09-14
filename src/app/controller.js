@@ -98,6 +98,7 @@ export async function resetDocumentState() {
   state.pageNum = 1;
   state.scale = 1.0;
   state.annotations = {};
+  try { state.annotationsVersion = 0; } catch {}
   state.viewports = {};
   state.pendingImageSrc = null;
   state.currentDocId = null;
@@ -225,6 +226,7 @@ export async function openFile(file) {
   state.loadedPdfData = rawData;
   state.pageNum = 1;
   state.annotations = {};
+  try { state.annotationsVersion = 0; } catch {}
   state.viewports = {};
   state.pendingImageSrc = null;
   state.currentDocId = nextId || null;
@@ -311,3 +313,4 @@ export const handlers = {
   onUndo: async () => { if (undo()) await rerender(); },
   onRedo: async () => { if (redo()) await rerender(); },
 };
+

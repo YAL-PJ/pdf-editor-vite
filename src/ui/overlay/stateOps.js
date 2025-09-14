@@ -1,5 +1,5 @@
 // src/ui/overlay/stateOps.js
-import { state } from "@app/state";
+import { state, markAnnotationsChanged } from "@app/state";
 
 export function getPageList(pageNum) {
   const anns = state.annotations || {};
@@ -16,7 +16,7 @@ export function setPageList(pageNum, newList) {
     if (typeof state.setAnnotations === "function") state.setAnnotations(nextAnns);
     else console.warn("[render] annotations container is read-only; updates may not persist.");
   }
-  return getPageList(pageNum);
+  markAnnotationsChanged();`n  return getPageList(pageNum);
 }
 
 export function replaceAnn(pageNum, oldAnn, patch) {
@@ -38,3 +38,5 @@ export function removeAnn(pageNum, ann) {
   nextList.splice(i, 1);
   setPageList(pageNum, nextList);
 }
+
+
