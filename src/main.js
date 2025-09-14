@@ -21,7 +21,6 @@ import {
   getEdgePx,
 } from "@app/renderPrefs";
 import { makeSaveName, extractOriginalName } from "@app/filename";
-import { downloadAnnotatedPdf } from "@pdf/exportAnnotated";
 import { initFitObserver } from "@app/fitObserver";
 
 // DEV-ONLY: layout shift logger
@@ -31,20 +30,64 @@ if (import.meta?.env?.DEV) {
 
 /* ---------- Constants & safe storage ---------- */
 export const LS_KEYS = { lastName: "last_pdf_name" };
-export const AUTOSAVE_DELAY_MS = 50;
 
-function safeSet(key, value) { try { localStorage.setItem(key, value); } catch {} }
-function safeGet(key)        { try { return localStorage.getItem(key); } catch { return null; } }
+// Dev-only, once-per (op,key) storage warnings
+const _storageWarned = new Set();
+function _warnStorage(op, key, err) {
+  if (!import.meta?.env?.DEV) return;
+  const tag = `${op}:${key}`;
+  if (_storageWarned.has(tag)) return;
+  _storageWarned.add(tag);
+  console.warn(`[storage] ${op} failed for "${key}"`, err);
+}
+
+function safeSet(key, value) {
+  try { localStorage.setItem(key, value); }
+  catch (e) { _warnStorage("setItem", key, e); }
+}
+
+function safeGet(key) {
+  try { return localStorage.getItem(key); }
+  catch (e) { _warnStorage("getItem", key, e); return null; }
+}
+
+/* ---------- Adaptive autosave delay (optional) ---------- */
+function chooseAutosaveDelay() {
+  const forced = Number(safeGet?.("autosave_ms"));
+  if (Number.isFinite(forced) && forced >= 0) return forced;
+
+  const cores = (typeof navigator !== "undefined" && navigator.hardwareConcurrency) || 4;
+  const mem = (typeof navigator !== "undefined" && navigator.deviceMemory) || 4;
+  const prefersReducedMotion =
+    typeof matchMedia === "function" &&
+    matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  let ms = 50; // baseline
+  if (cores <= 4 || mem <= 4 || prefersReducedMotion) ms = 120;
+  if (cores <= 2 || mem <= 2) ms = 180;
+  return ms;
+}
+
+export const AUTOSAVE_DELAY_MS = Math.max(40, Math.min(240, chooseAutosaveDelay()));
 
 /* ---------- Initialize render prefs (runtime) ---------- */
 updateRenderConfig(initRenderPrefs());
 
-/* ---------- DEV mirrors ---------- */
+/* ---------- DEV mirrors (live getters, namespaced) ---------- */
 const DEV_MIRROR = !!import.meta?.env?.DEV;
-if (DEV_MIRROR) {
-  window.__snapGuidesEnabled = getGuidesEnabled();
-  window.__snapEdgePx = getEdgePx();
-  window.__renderPrefs = () => ({ ...getRenderPrefs() });
+if (DEV_MIRROR && typeof window !== "undefined") {
+  const dbg = (window.__appDebug ||= {});
+
+  Object.defineProperties(dbg, {
+    snapGuidesEnabled: { get: getGuidesEnabled, enumerable: true },
+    snapEdgePx:        { get: getEdgePx,        enumerable: true },
+    renderPrefs:       { get: () => ({ ...getRenderPrefs() }), enumerable: true },
+  });
+
+  dbg.print = () => console.table(dbg.renderPrefs);
+  dbg.toggleGuides = () => toggleGuides();
+  dbg.cycleEdge    = () => cycleEdge();
+  // console.info("[dev] Debug mirrors at window.__appDebug");
 }
 
 /* ---------- Bootstrap UI (toolbar, overlay tools, file input) ---------- */
@@ -69,6 +112,7 @@ attachGlobalListeners({
     if (!state.loadedPdfData) { alert("Open a PDF first."); return; }
     const orig = state.originalFileName || safeGet(LS_KEYS.lastName);
     const saveAs = makeSaveName(orig);
+    const { downloadAnnotatedPdf } = await import("@pdf/exportAnnotated");
     downloadAnnotatedPdf(state.loadedPdfData, saveAs);
   },
   updateRenderConfig,
