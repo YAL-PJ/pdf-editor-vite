@@ -8,6 +8,7 @@ export { initHighlightDrag } from "./highlight";
 export { initNotePlacement } from "./notes";
 export { initTextDrag } from "./text";
 export { initImageDrag } from "./image";
+export { initPanScroll, setPannable } from "./pan";
 
 // Rendering
 export { renderAnnotationsForPage } from "./render";

@@ -3,7 +3,7 @@
 
 import { createToolbar } from "@ui/toolbar";
 import { setupFileInput } from "@ui/uiHandlers";
-import { initTextDrag, initImageDrag, initHighlightDrag, initNotePlacement } from "@ui/overlay";
+import { initTextDrag, initImageDrag, initHighlightDrag, initNotePlacement, initPanScroll } from "@ui/overlay";
 import { wrapHandler } from "@app/handlerWrapper";
 import { scheduleSave } from "@app/persistence";
 import { state } from "@app/state";
@@ -28,6 +28,7 @@ export function bootstrapUI({ handlers, openFile, extractOriginalName, autosaveD
   initImageDrag();
   initHighlightDrag();
   initNotePlacement();
+  initPanScroll();
 
   // Toolbar with instrumented handlers; download handled by listeners/main
   const toolbarHandlers = { ...instrumentHandlers(handlers) };

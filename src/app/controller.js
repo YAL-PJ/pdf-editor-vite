@@ -11,6 +11,7 @@ import {
   syncOverlayToCanvas,
   clearOverlay,
 } from "@ui/overlay";
+import { setPannable } from "@ui/overlay";
 import { saveState, hasDataToLose, clearSavedState } from "./persistence";
 import { undo, redo, historyInit } from "@app/history";
 import { downloadAnnotatedPdf } from "@pdf/exportAnnotated";
@@ -288,6 +289,8 @@ export const handlers = {
     state.tool = tool || null;
     setActiveToolButton(tool || null);
     setOverlayCursor(tool || null);
+    // Enable drag-to-pan only when no tool is active (select mode)
+    try { setPannable(!state.tool); } catch {}
   },
   onPickImage: () => {
     const picker = document.getElementById("imagePickerInput");

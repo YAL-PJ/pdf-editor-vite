@@ -61,18 +61,23 @@ html { scrollbar-gutter: stable both-edges; }
 /* Cursor by tool (use data-tool attribute) */
 #annoLayer[data-tool="highlight"] { cursor: crosshair; }
 #annoLayer[data-tool="note"]      { cursor: copy; }
-#annoLayer:not([data-tool])       { cursor: default; }
+#annoLayer:not([data-tool])       { cursor: grab; }
 #annoLayer[data-tool="image"]     { cursor: crosshair; }
 #annoLayer[data-tool="text"]      { cursor: text; }
+/* while panning (drag-to-pan) */
+#annoLayer.panning                 { cursor: grabbing; }
 
 /* ---------- Performance optimizations ---------- */
 #viewer,
-.viewer-scroll,
 #annoLayer,
 .text-box,
 .image-box {
   contain: layout paint;       /* reduces forced reflow scope */
 }
+
+/* Drag-to-pan affordance when the select tool is active */
+.viewer-scroll.pannable { cursor: grab; }
+.viewer-scroll.panning  { cursor: grabbing; }
 
 .text-box,
 .image-box {

@@ -22,6 +22,7 @@ import {
 } from "@app/renderPrefs";
 import { makeSaveName, extractOriginalName } from "@app/filename";
 import { initFitObserver } from "@app/fitObserver";
+import { setPannable } from "@ui/overlay";
 
 // DEV-ONLY: layout shift logger
 if (import.meta?.env?.DEV) {
@@ -98,6 +99,9 @@ const { toolbarHandlers } = bootstrapUI({
   autosaveDelayMs: AUTOSAVE_DELAY_MS,
   lsKeys: LS_KEYS,
 });
+
+// Default tool is select (null) → enable drag-to-pan affordance
+try { setPannable(true); } catch {}
 
 /* ---------- Refit PDF when viewer container resizes ---------- */
 initFitObserver(
