@@ -27,7 +27,7 @@ export function renderAnnotationsForPage(pageNum) {
   for (const ann of list) {
     switch (ann.type) {
       case "highlight": renderHighlight(layer, ann, cw, ch); break;
-      case "image":     renderImage(layer, ann, cw, ch);     break;
+      case "image":     renderImage(layer, ann, pageNum, cw, ch);     break;
       case "note":      renderNote(layer, ann, pageNum, cw, ch); break;
       case "text":      renderText(layer, ann, pageNum, cw, ch); break;
       default: /* ignore */ break;
