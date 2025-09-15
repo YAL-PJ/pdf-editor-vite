@@ -19,7 +19,7 @@ export function renderImage(layer, ann, pageNum, cw, ch) {
   box._annRef = ann;
   box.style.touchAction = "none";
 
-  // Drag to move the image box
+  // Drag to move the image box (avoid conflicting with native CSS resize handle)
   const startImageDrag = makeDrag({
     getSizeAtStart: () => ({ cw, ch, w: box.offsetWidth, h: box.offsetHeight }),
     getStartLeftTop: () => {
@@ -42,7 +42,29 @@ export function renderImage(layer, ann, pageNum, cw, ch) {
     },
     pageNum, layer, excludeAnn: ann,
   });
-  box.addEventListener("pointerdown", (e) => startImageDrag(e, box), { passive: false });
+  box.addEventListener("pointerdown", (e) => {
+    // If the pointer starts near the bottom-right corner, let native resize run
+    const rect = box.getBoundingClientRect();
+    const M = 18; // px margin treated as resize area
+    const nearRight = e.clientX >= rect.right - M;
+    const nearBottom = e.clientY >= rect.bottom - M;
+    if (nearRight && nearBottom) return; // do not hijack resize corner
+
+    startImageDrag(e, box);
+  }, { passive: false });
+
+  // Persist size changes after a native CSS resize ends (on pointerup)
+  box.addEventListener("pointerup", () => {
+    try {
+      const CW = cw, CH = ch;
+      const prev = box._annRef.rect || [0,0,0,0];
+      const wN = (box.offsetWidth  || 0) / CW;
+      const hN = (box.offsetHeight || 0) / CH;
+      if (wN && hN && (wN !== prev[2] || hN !== prev[3])) {
+        box._annRef = replaceAnn(pageNum, box._annRef, { rect: [prev[0], prev[1], wN, hN] });
+      }
+    } catch {}
+  });
 
   layer.appendChild(box);
 }
