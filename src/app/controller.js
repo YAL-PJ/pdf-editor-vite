@@ -106,6 +106,7 @@ export async function resetDocumentState() {
 
   setActiveToolButton(null);
   setOverlayCursor(null);
+  setToolbarEnabled(false);
 
   // Restore "placeholder" so CSS reserves aspect-only space again
   getViewerEl()?.classList.add("placeholder");
