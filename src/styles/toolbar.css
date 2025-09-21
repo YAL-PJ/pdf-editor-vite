@@ -2,31 +2,24 @@
 #toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 20px;
+  align-items: center;
+  gap: 18px;
   padding: 20px 24px;
   margin: 24px 0;
   border: 1px solid var(--panel-border);
   border-radius: 28px;
   background: linear-gradient(135deg, #ffeef3 0%, #fff8f2 100%);
   box-shadow: 0 22px 46px -28px rgba(111, 58, 82, 0.45);
-  min-height: 140px;
+  min-height: 120px;
   scrollbar-gutter: stable both-edges;
 }
 
-#toolbar > * {
-  flex: 0 1 auto;
-}
-
-.toolbar-group {
+.toolbar-tools {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
-  gap: 16px;
-}
-
-.toolbar-group[data-stack="true"] {
-  flex-direction: column;
+  gap: 18px;
+  width: 100%;
 }
 
 .toolbar-btn {
@@ -96,7 +89,7 @@
   box-shadow: none;
 }
 
-/* Compact buttons (page/zoom controls) */
+/* Compact buttons (used by viewer controls and toolbar variants) */
 .toolbar-btn.toolbar-btn--compact {
   min-width: 72px;
   min-height: 72px;
@@ -107,15 +100,11 @@
 .toolbar-btn.toolbar-btn--compact .toolbar-btn__icon {
   width: 28px;
   height: 28px;
-}
-
-.toolbar-btn.toolbar-btn--icon-row {
+}\n.toolbar-btn.toolbar-btn--icon-row {
   flex-direction: row;
   gap: 14px;
   padding-inline: 22px;
-}
-
-.toolbar-btn.toolbar-btn--icon-row .toolbar-btn__icon {
+}\n.toolbar-btn.toolbar-btn--icon-row .toolbar-btn__icon {
   width: 32px;
   height: 32px;
 }
@@ -127,7 +116,7 @@
   justify-content: center;
   padding: 14px 18px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.75);
   color: var(--fg);
   font-weight: 600;
   min-width: 120px;
@@ -140,3 +129,5 @@
 #zoomLevel {
   color: inherit;
 }
+
+

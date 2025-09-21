@@ -92,6 +92,54 @@ export function attachToolbarEvents(handlers) {
     { signal }
   );
 
+  const navControlsEl = document.getElementById("navControls");
+  if (navControlsEl) {
+    navControlsEl.addEventListener(
+      "click",
+      (e) => {
+        const btn = e.target.closest("button");
+        if (!btn || !navControlsEl.contains(btn)) return;
+
+        const fn = clickActions[btn.id];
+        if (!fn) return;
+
+        e.preventDefault();
+        fn();
+      },
+      { signal }
+    );
+  }
+
+  const historyControlsEl = document.getElementById("historyControls");
+  if (historyControlsEl) {
+    historyControlsEl.addEventListener(
+      "click",
+      (e) => {
+        const btn = e.target.closest("button");
+        if (!btn || !historyControlsEl.contains(btn)) return;
+
+        const fn = clickActions[btn.id];
+        if (!fn) return;
+
+        e.preventDefault();
+        fn();
+      },
+      { signal }
+    );
+  }
+
+  const downloadBtn = q("btnDownloadAnnotated");
+  if (downloadBtn && clickActions.btnDownloadAnnotated) {
+    downloadBtn.addEventListener(
+      "click",
+      (e) => {
+        e.preventDefault();
+        clickActions.btnDownloadAnnotated();
+      },
+      { signal }
+    );
+  }
+
   // Hidden file input(s) for images (outside toolbar click delegation)
   // Preferred: imagePickerInput; Legacy: imagePicker
   const picker = firstEl("imagePickerInput", "imagePicker");
@@ -162,3 +210,5 @@ if (import.meta?.hot) {
     _toolbarEvtController = null;
   });
 }
+
+

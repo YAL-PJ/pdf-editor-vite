@@ -23,10 +23,18 @@
   </head>
   <body>
     <main>
-      <h1>PDF Viewer</h1>
+      <div class="viewer-header">
+        <h1>PDF Viewer</h1>
+        <button id="btnDownloadAnnotated" type="button" class="viewer-download-btn" aria-label="Download PDF with annotations" title="Download PDF with annotations">
+          <span class="viewer-download-btn__icon" aria-hidden="true">
+            <img src="/src/assets/icons/download.svg" alt="" />
+          </span>
+          <span class="viewer-download-btn__label">Download</span>
+        </button>
+      </div>
 
       <!-- File picker -->
-      <div>
+      <div class="file-input-row">
         <label for="fileInput">Select PDF file:</label>
         <input type="file" id="fileInput" accept="application/pdf" />
       </div>
@@ -34,13 +42,22 @@
       <!-- Toolbar: start hidden but space-reserved to avoid CLS -->
       <div id="toolbar" class="hydrating" role="toolbar" aria-label="Annotation toolbar"></div>
 
+
+
       <!-- Viewer area -->
       <div class="viewer-scroll">
-        <div id="viewer" class="placeholder">
-          <canvas id="pdfCanvas" role="img" aria-label="PDF page canvas"></canvas>
-          <div id="annoLayer"></div>
+        <div class="viewer-stage">
+          <div id="viewer" class="placeholder">
+            <canvas id="pdfCanvas" role="img" aria-label="PDF page canvas"></canvas>
+            <div id="annoLayer"></div>
+          </div>
+          <div id="navControls" class="nav-controls-shell" aria-label="Page navigation and zoom"></div>
         </div>
       </div>
+
+
+      <!-- History bar -->
+      <div id="historyControls" class="history-controls-shell" aria-label="History controls"></div>
 
       <noscript>This app requires JavaScript enabled.</noscript>
     </main>

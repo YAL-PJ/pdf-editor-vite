@@ -1,3 +1,268 @@
+/* ---------- Layout: Header & inputs ---------- */
+/* ---------- Viewer stage ---------- */
+.viewer-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: max-content;
+  margin: 0 auto;
+  padding-bottom: 96px;
+  position: relative;
+}
+
+
+.viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.file-input-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.viewer-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 18px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fffaf7;
+  padding: 12px 20px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.viewer-download-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px -20px rgba(255, 122, 162, 0.6);
+}
+
+.viewer-download-btn:focus-visible {
+  outline: 3px solid rgba(255, 122, 162, 0.45);
+  outline-offset: 3px;
+}
+
+.viewer-download-btn__icon {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+}
+
+.viewer-download-btn__icon img {
+  width: 100%;
+  height: 100%;
+}
+
+.viewer-download-btn__label {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .viewer-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .viewer-download-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+
+
+/* ---------- Navigation bar ---------- */
+.nav-controls-shell {
+  position: sticky;
+  bottom: 24px;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  width: 100%;
+  max-width: 100%;
+  pointer-events: none;
+}
+
+
+
+.nav-controls {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: rgba(40, 32, 38, 0.72);
+  color: #fffaf7;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 24px 40px -28px rgba(27, 18, 25, 0.55);
+  backdrop-filter: blur(12px);
+}
+
+.nav-controls__label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.nav-controls__pager,
+.nav-controls__zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-controls__pager {
+  flex: 1 1 auto;
+}
+
+.nav-controls__zoom {
+  justify-content: center;
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.nav-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.nav-btn:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+.nav-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.nav-btn .toolbar-btn__icon {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-btn.nav-btn--arrow .toolbar-btn__icon {
+  width: 18px;
+  height: 18px;
+}
+
+.nav-controls .page-info {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.nav-controls #zoomLevel {
+  min-width: 64px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.page-info__separator {
+  opacity: 0.6;
+}
+
+@media (max-width: 720px) {
+  .nav-controls {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .nav-controls__pager,
+  .nav-controls__zoom {
+    width: 100%;
+    justify-content: center;
+  }
+}
+/* ---------- History bar ---------- */
+.history-controls-shell {
+  display: flex;
+  justify-content: flex-end;
+  margin: 20px 0 0;
+}
+
+.history-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 122, 162, 0.18) 0%, rgba(255, 188, 200, 0.14) 100%);
+  border: 1px solid rgba(255, 122, 162, 0.32);
+  box-shadow: 0 16px 36px -26px rgba(111, 58, 82, 0.35);
+}
+
+.history-controls__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.history-controls__buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.history-controls .toolbar-btn {
+  min-width: 64px;
+  min-height: 64px;
+  padding: 12px 16px;
+  font-size: 0.78rem;
+}
+
+.history-controls .toolbar-btn__icon {
+  width: 26px;
+  height: 26px;
+}
+
+@media (max-width: 640px) {
+  .history-controls-shell {
+    justify-content: center;
+  }
+
+  .history-controls {
+    width: 100%;
+    max-width: 360px;
+    justify-content: space-between;
+  }
+}
+
 /* ---------- Viewer ---------- */
 #viewer {
   position: relative;
@@ -31,6 +296,10 @@
   /* Scroll only when content actually exceeds the cap */
   overflow-y: auto;
   overflow-x: auto;
+
+  /* Keep nav pill fully visible when sticky */
+  padding-bottom: 140px;
+  scroll-padding-bottom: 140px;
 
   /* Let container grow with content; cap when too tall */
   max-height: calc(100dvh - 200px);
@@ -131,5 +400,8 @@ html { scrollbar-gutter: stable both-edges; }
 
 /* Optional: instant pressed feedback if aria-pressed is set */
 button[aria-pressed="true"] { outline: 2px solid var(--accent, #5ab); }
+
+
+
 
 

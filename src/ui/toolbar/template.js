@@ -9,43 +9,62 @@ import textIcon from "../../assets/icons/type.svg?raw";
 import imageIcon from "../../assets/icons/image.svg?raw";
 import undoIcon from "../../assets/icons/undo.svg?raw";
 import redoIcon from "../../assets/icons/redo.svg?raw";
-import downloadIcon from "../../assets/icons/download.svg?raw";
 
 const icon = (svg) => `<span class="toolbar-btn__icon" aria-hidden="true">${svg}</span>`;
 
-/**
- * HTML template generation for toolbar
- */
-export function createToolbarHTML() {
+export function createNavControlsHTML() {
   return `
-    <div class="toolbar" role="toolbar" aria-label="PDF viewer controls">
-      <div class="toolbar-group" aria-label="Page navigation">
-        <button id="prevPage" type="button" class="toolbar-btn toolbar-btn--compact toolbar-btn--icon-row" aria-label="Previous page">
+    <div class="nav-controls">
+      <span class="nav-controls__label">Page</span>
+      <div class="nav-controls__pager" aria-label="Page navigation">
+        <button id="prevPage" type="button" class="nav-btn nav-btn--arrow" aria-label="Previous page">
           ${icon(prevIcon)}
-          <span class="toolbar-btn__label">Prev</span>
         </button>
-        <span class="page-info">
-          Page <span id="pageNum" aria-live="polite">1</span> / <span id="pageCount">?</span>
+        <span class="page-info" aria-live="polite">
+          <span id="pageNum">1</span>
+          <span class="page-info__separator" aria-hidden="true">/</span>
+          <span id="pageCount">?</span>
         </span>
-        <button id="nextPage" type="button" class="toolbar-btn toolbar-btn--compact toolbar-btn--icon-row" aria-label="Next page">
+        <button id="nextPage" type="button" class="nav-btn nav-btn--arrow" aria-label="Next page">
           ${icon(nextIcon)}
-          <span class="toolbar-btn__label">Next</span>
         </button>
       </div>
 
-      <div class="toolbar-group" aria-label="Zoom controls">
-        <button id="zoomOut" type="button" class="toolbar-btn toolbar-btn--compact" aria-label="Zoom out">
+      <div class="nav-controls__zoom" aria-label="Zoom controls">
+        <button id="zoomOut" type="button" class="nav-btn nav-btn--circle" aria-label="Zoom out">
           ${icon(zoomOutIcon)}
-          <span class="toolbar-btn__label">Zoom out</span>
         </button>
         <span id="zoomLevel" aria-live="polite">100%</span>
-        <button id="zoomIn" type="button" class="toolbar-btn toolbar-btn--compact" aria-label="Zoom in">
+        <button id="zoomIn" type="button" class="nav-btn nav-btn--circle" aria-label="Zoom in">
           ${icon(zoomInIcon)}
-          <span class="toolbar-btn__label">Zoom in</span>
         </button>
       </div>
+    </div>
+  `;
+}
 
-      <div class="toolbar-group" role="group" aria-label="Annotation tools">
+export function createHistoryControlsHTML() {
+  return `
+    <div class="history-controls">
+      <span class="history-controls__label">History</span>
+      <div class="history-controls__buttons">
+        <button id="btnUndo" type="button" class="toolbar-btn toolbar-btn--compact" aria-label="Undo last action" title="Undo (Ctrl/Cmd+Z)">
+          ${icon(undoIcon)}
+          <span class="toolbar-btn__label">Undo</span>
+        </button>
+        <button id="btnRedo" type="button" class="toolbar-btn toolbar-btn--compact" aria-label="Redo last undone action" title="Redo (Ctrl/Cmd+Shift+Z or Ctrl+Y)">
+          ${icon(redoIcon)}
+          <span class="toolbar-btn__label">Redo</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+export function createToolbarHTML() {
+  return `
+    <div class="toolbar" role="toolbar" aria-label="PDF annotation controls">
+      <div class="toolbar-tools" role="group" aria-label="Annotation tools">
         <button id="toolSelect" type="button" class="toolbar-btn" aria-label="Select tool" aria-pressed="true">
           ${icon(selectIcon)}
           <span class="toolbar-btn__label">Select</span>
@@ -65,24 +84,6 @@ export function createToolbarHTML() {
         <button id="toolImage" type="button" class="toolbar-btn" aria-label="Insert image tool" aria-pressed="false">
           ${icon(imageIcon)}
           <span class="toolbar-btn__label">Image</span>
-        </button>
-      </div>
-
-      <div class="toolbar-group" aria-label="History controls">
-        <button id="btnUndo" type="button" class="toolbar-btn toolbar-btn--compact" aria-label="Undo last action" title="Undo (Ctrl/Cmd+Z)">
-          ${icon(undoIcon)}
-          <span class="toolbar-btn__label">Undo</span>
-        </button>
-        <button id="btnRedo" type="button" class="toolbar-btn toolbar-btn--compact" aria-label="Redo last undone action" title="Redo (Ctrl/Cmd+Shift+Z or Ctrl+Y)">
-          ${icon(redoIcon)}
-          <span class="toolbar-btn__label">Redo</span>
-        </button>
-      </div>
-
-      <div class="toolbar-group" aria-label="Export options">
-        <button id="btnDownloadAnnotated" type="button" class="toolbar-btn toolbar-btn--icon-row" aria-label="Download PDF with annotations" title="Download PDF with annotations">
-          ${icon(downloadIcon)}
-          <span class="toolbar-btn__label">Download</span>
         </button>
       </div>
 
