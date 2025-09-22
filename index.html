@@ -40,9 +40,12 @@
       </div>
 
       <!-- Toolbar: start hidden but space-reserved to avoid CLS -->
-      <div id="toolbar" class="hydrating" role="toolbar" aria-label="Annotation toolbar"></div>
+      <div class="toolbar-row">
+        <div id="toolbar" class="hydrating" role="toolbar" aria-label="Annotation toolbar"></div>
+        <div id="historyControls" class="history-controls-shell" aria-label="History controls"></div>
+      </div>
 
-
+      <div id="navControls" class="nav-floating" aria-label="Page navigation and zoom"></div>
 
       <!-- Viewer area -->
       <div class="viewer-scroll">
@@ -51,13 +54,10 @@
             <canvas id="pdfCanvas" role="img" aria-label="PDF page canvas"></canvas>
             <div id="annoLayer"></div>
           </div>
-          <div id="navControls" class="nav-controls-shell" aria-label="Page navigation and zoom"></div>
         </div>
       </div>
 
 
-      <!-- History bar -->
-      <div id="historyControls" class="history-controls-shell" aria-label="History controls"></div>
 
       <noscript>This app requires JavaScript enabled.</noscript>
     </main>
