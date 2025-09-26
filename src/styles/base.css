@@ -10,11 +10,17 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  width: 100%;
 }
 
 main {
   flex: 1 0 auto;
-  max-width: 1200px;
+  width: 100%;
+}
+
+.page-shell {
+  width: min(100%, 1200px);
   margin: 0 auto;
   padding: 16px;
 }
@@ -25,6 +31,9 @@ main {
   border-top: 1px solid var(--panel-border);
   color: var(--fg);
   padding: 32px 16px 40px;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
 }
 
 .site-footer__inner {

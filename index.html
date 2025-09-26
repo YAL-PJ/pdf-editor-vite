@@ -23,50 +23,55 @@
   </head>
   <body>
     <main>
-      <div class="viewer-header">
-        <h1>PDF Viewer</h1>
-        <button id="btnDownloadAnnotated" type="button" class="viewer-download-btn" aria-label="Download PDF with annotations" title="Download PDF with annotations">
-          <span class="viewer-download-btn__icon" aria-hidden="true">
-            <img src="/src/assets/icons/download.svg" alt="" />
-          </span>
-          <span class="viewer-download-btn__label">Download</span>
-        </button>
+      <div class="page-shell">
+        <div class="viewer-header">
+          <h1>PDF Viewer</h1>
+          <button
+            id="btnDownloadAnnotated"
+            type="button"
+            class="viewer-download-btn"
+            aria-label="Download PDF with annotations"
+            title="Download PDF with annotations"
+          >
+            <span class="viewer-download-btn__icon" aria-hidden="true">
+              <img src="/src/assets/icons/download.svg" alt="" />
+            </span>
+            <span class="viewer-download-btn__label">Download</span>
+          </button>
+        </div>
 
-      </div>
+        <!-- Toolbar: start hidden but space-reserved to avoid CLS -->
+        <div class="toolbar-row">
+          <div id="toolbar" class="hydrating" role="toolbar" aria-label="Annotation toolbar"></div>
+          <div id="historyControls" class="history-controls-shell" aria-label="History controls"></div>
+        </div>
 
-      <!-- Toolbar: start hidden but space-reserved to avoid CLS -->
-      <div class="toolbar-row">
-        <div id="toolbar" class="hydrating" role="toolbar" aria-label="Annotation toolbar"></div>
-        <div id="historyControls" class="history-controls-shell" aria-label="History controls"></div>
-      </div>
+        <div id="navControls" class="nav-floating" aria-label="Page navigation and zoom"></div>
 
-      <div id="navControls" class="nav-floating" aria-label="Page navigation and zoom"></div>
-
-      <!-- Viewer area -->
-      <div class="viewer-scroll">
-        <div class="viewer-stage">
-          <div class="file-input-panel">
-            <input type="file" id="fileInput" accept="application/pdf" />
-            <label class="file-input-button" for="fileInput">
-              <span class="file-input-button__icon" aria-hidden="true">&#128194;</span>
-              <span>Select PDF</span>
-            </label>
-            <p class="file-input-hint">or drag & drop a PDF onto the page below</p>
-          </div>
-          <div id="viewer" class="placeholder">
-            <div class="drop-overlay" aria-hidden="true">
-              <div class="drop-overlay__icon">&#10515;</div>
-              <div class="drop-overlay__text">Drag & drop a PDF here</div>
+        <!-- Viewer area -->
+        <div class="viewer-scroll">
+          <div class="viewer-stage">
+            <div class="file-input-panel">
+              <input type="file" id="fileInput" accept="application/pdf" />
+              <label class="file-input-button" for="fileInput">
+                <span class="file-input-button__icon" aria-hidden="true">&#128194;</span>
+                <span>Select PDF</span>
+              </label>
+              <p class="file-input-hint">or drag & drop a PDF onto the page below</p>
             </div>
-            <canvas id="pdfCanvas" role="img" aria-label="PDF page canvas"></canvas>
-            <div id="annoLayer"></div>
+            <div id="viewer" class="placeholder">
+              <div class="drop-overlay" aria-hidden="true">
+                <div class="drop-overlay__icon">&#10515;</div>
+                <div class="drop-overlay__text">Drag & drop a PDF here</div>
+              </div>
+              <canvas id="pdfCanvas" role="img" aria-label="PDF page canvas"></canvas>
+              <div id="annoLayer"></div>
+            </div>
           </div>
         </div>
+
+        <noscript>This app requires JavaScript enabled.</noscript>
       </div>
-
-
-
-      <noscript>This app requires JavaScript enabled.</noscript>
     </main>
 
     <footer class="site-footer" aria-label="Site footer">
