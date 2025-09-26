@@ -52,16 +52,17 @@
               class="file-input-native"
               accept="application/pdf"
               aria-describedby="fileInputHint"
+
+              aria-labelledby="filePickerTrigger"
             />
-            <label
-              for="fileInput"
+            <button
+              type="button"
+              id="filePickerTrigger"
               class="file-input-button"
-              role="button"
-              tabindex="0"
             >
               <span class="file-input-button__icon" aria-hidden="true">&#128194;</span>
               <span>Select PDF</span>
-            </label>
+            </button>
             <p id="fileInputHint" class="file-input-hint">or drag & drop a PDF onto the page below</p>
           </div>
           <div id="viewer" class="placeholder">
