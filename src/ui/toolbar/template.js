@@ -21,11 +21,22 @@ export function createNavControlsHTML() {
         <button id="prevPage" type="button" class="nav-btn nav-btn--arrow" aria-label="Previous page">
           ${icon(prevIcon)}
         </button>
-        <span class="page-info" aria-live="polite">
-          <span id="pageNum">1</span>
+        <div class="page-info">
+          <label class="sr-only" for="pageNum">Current page</label>
+          <input
+            id="pageNum"
+            class="page-info__field"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            value="1"
+            data-current="1"
+            aria-label="Current page"
+            autocomplete="off"
+          />
           <span class="page-info__separator" aria-hidden="true">/</span>
           <span id="pageCount">?</span>
-        </span>
+        </div>
         <button id="nextPage" type="button" class="nav-btn nav-btn--arrow" aria-label="Next page">
           ${icon(nextIcon)}
         </button>
@@ -35,7 +46,18 @@ export function createNavControlsHTML() {
         <button id="zoomOut" type="button" class="nav-btn nav-btn--circle" aria-label="Zoom out">
           ${icon(zoomOutIcon)}
         </button>
-        <span id="zoomLevel" aria-live="polite">100%</span>
+        <label class="sr-only" for="zoomLevel">Zoom level (percent)</label>
+        <input
+          id="zoomLevel"
+          class="nav-controls__zoom-input"
+          type="text"
+          inputmode="decimal"
+          pattern="[0-9]+([.,][0-9]+)?%?"
+          value="100%"
+          data-current="100%"
+          aria-label="Zoom level (percent)"
+          autocomplete="off"
+        />
         <button id="zoomIn" type="button" class="nav-btn nav-btn--circle" aria-label="Zoom in">
           ${icon(zoomInIcon)}
         </button>
