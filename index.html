@@ -22,18 +22,25 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <main>
-      <div class="viewer-header">
+    <header class="viewer-header">
+      <div class="viewer-header__inner">
         <h1>PDF Viewer</h1>
-        <button id="btnDownloadAnnotated" type="button" class="viewer-download-btn" aria-label="Download PDF with annotations" title="Download PDF with annotations">
+        <button
+          id="btnDownloadAnnotated"
+          type="button"
+          class="viewer-download-btn"
+          aria-label="Download PDF with annotations"
+          title="Download PDF with annotations"
+        >
           <span class="viewer-download-btn__icon" aria-hidden="true">
             <img src="/src/assets/icons/download.svg" alt="" />
           </span>
           <span class="viewer-download-btn__label">Download</span>
         </button>
-
       </div>
+    </header>
 
+    <main>
       <!-- Toolbar: start hidden but space-reserved to avoid CLS -->
       <div class="toolbar-row">
         <div id="toolbar" class="hydrating" role="toolbar" aria-label="Annotation toolbar"></div>
