@@ -229,6 +229,122 @@ export function attachToolbarEvents(handlers = {}) {
     );
   }
 
+  const resolveResult = (result, onValue, onError) => {
+    const apply = (value) => {
+      if (value == null) {
+        onError?.();
+      } else {
+        onValue(value);
+      }
+    };
+    if (result && typeof result.then === "function") {
+      result.then(apply).catch(() => onError?.());
+    } else {
+      apply(result);
+    }
+  };
+
+  const pageInput = q("pageNum");
+  if (pageInput) {
+    const syncPageDisplay = (value) => {
+      const text = String(value ?? pageInput.dataset.current ?? pageInput.value ?? "");
+      pageInput.value = text;
+      pageInput.dataset.current = text;
+    };
+    const revertPage = () => syncPageDisplay(pageInput.dataset.current);
+    const commitPage = () => {
+      const handler = safe(handlers.onPageInput);
+      resolveResult(
+        handler(pageInput.value),
+        (value) => syncPageDisplay(value),
+        () => revertPage()
+      );
+    };
+
+    pageInput.addEventListener(
+      "focus",
+      () => {
+        requestAnimationFrame(() => pageInput.select());
+      },
+      { signal }
+    );
+
+    pageInput.addEventListener(
+      "keydown",
+      (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commitPage();
+          requestAnimationFrame(() => pageInput.select());
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          revertPage();
+          pageInput.blur();
+        }
+      },
+      { signal }
+    );
+
+    pageInput.addEventListener(
+      "blur",
+      () => {
+        commitPage();
+      },
+      { signal }
+    );
+  }
+
+  const zoomInput = q("zoomLevel");
+  if (zoomInput) {
+    const syncZoomDisplay = (value) => {
+      const text = String(value ?? zoomInput.dataset.current ?? zoomInput.value ?? "");
+      const withSuffix = text.endsWith("%") ? text : `${text.replace(/%+$/, "")}%`;
+      zoomInput.value = withSuffix;
+      zoomInput.dataset.current = withSuffix;
+    };
+    const revertZoom = () => syncZoomDisplay(zoomInput.dataset.current);
+    const commitZoom = () => {
+      const handler = safe(handlers.onZoomInput);
+      resolveResult(
+        handler(zoomInput.value),
+        (value) => syncZoomDisplay(value),
+        () => revertZoom()
+      );
+    };
+
+    zoomInput.addEventListener(
+      "focus",
+      () => {
+        requestAnimationFrame(() => zoomInput.select());
+      },
+      { signal }
+    );
+
+    zoomInput.addEventListener(
+      "keydown",
+      (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commitZoom();
+          requestAnimationFrame(() => zoomInput.select());
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          revertZoom();
+          zoomInput.blur();
+        }
+      },
+      { signal }
+    );
+
+    zoomInput.addEventListener(
+      "blur",
+      () => {
+        commitZoom();
+      },
+      { signal }
+    );
+  }
+
   if (historyControlsShell) {
     historyControlsShell.addEventListener(
       "click",

@@ -6,7 +6,9 @@
 // --- Single source of truth ---
 const BUTTON_IDS = [
   "prevPage", "nextPage",
+  "pageNum",
   "zoomIn", "zoomOut",
+  "zoomLevel",
   "toolSelect", "toolHighlight", "toolNote",
   "toolText", "toolImage",
 ];

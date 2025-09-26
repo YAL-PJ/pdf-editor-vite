@@ -43,6 +43,26 @@ const makeSaveName = (originalName, marker = " (annotated)") => {
 const escapeHtml = (s = "") =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const parsePageInput = (raw) => {
+  if (raw == null) return null;
+  const trimmed = String(raw).trim();
+  if (!trimmed) return null;
+  const num = Number.parseInt(trimmed, 10);
+  return Number.isFinite(num) ? num : null;
+};
+
+const parseZoomPercent = (raw) => {
+  if (raw == null) return null;
+  const trimmed = String(raw).trim();
+  if (!trimmed) return null;
+  const normalized = trimmed.replace(/%+$/, "").replace(/,/g, ".");
+  if (!normalized) return null;
+  const num = Number.parseFloat(normalized);
+  return Number.isFinite(num) ? num : null;
+};
+
 /* ---------- Minimal, accessible switch dialog ---------- */
 function showSwitchDialog(nextName) {
   return new Promise((resolve) => {
@@ -107,6 +127,23 @@ export async function resetDocumentState() {
   setActiveToolButton(null);
   setOverlayCursor(null);
   setToolbarEnabled(false);
+
+  try {
+    const pageInput = ui.pageNumEl();
+    if (pageInput) {
+      pageInput.value = "1";
+      pageInput.dataset.current = "1";
+      pageInput.setAttribute("aria-valuenow", "1");
+      pageInput.setAttribute("aria-valuemin", "1");
+      pageInput.removeAttribute("aria-valuemax");
+      pageInput.removeAttribute("max");
+    }
+    const zoomInput = ui.zoomLevelEl();
+    if (zoomInput) {
+      zoomInput.value = "100%";
+      zoomInput.dataset.current = "100%";
+    }
+  } catch {}
 
   // Restore "placeholder" so CSS reserves aspect-only space again
   getViewerEl()?.classList.remove("is-dragover");
@@ -174,8 +211,26 @@ export async function rerender() {
     syncOverlayToCanvas();
     renderAnnotationsForPage(state.pageNum, vp);
 
-    ui.pageNumEl().textContent   = String(state.pageNum);
-    ui.zoomLevelEl().textContent = `${Math.round(state.scale * 100)}%`;
+    const pageInput = ui.pageNumEl();
+    if (pageInput) {
+      const currentPage = String(state.pageNum);
+      pageInput.value = currentPage;
+      pageInput.dataset.current = currentPage;
+      pageInput.setAttribute("aria-valuenow", currentPage);
+      pageInput.setAttribute("aria-valuemin", "1");
+      if (state.pdfDoc?.numPages) {
+        const total = String(state.pdfDoc.numPages);
+        pageInput.setAttribute("aria-valuemax", total);
+        pageInput.setAttribute("max", total);
+      }
+    }
+
+    const zoomInput = ui.zoomLevelEl();
+    if (zoomInput) {
+      const zoomText = `${Math.round(state.scale * 100)}%`;
+      zoomInput.value = zoomText;
+      zoomInput.dataset.current = zoomText;
+    }
   } finally {
     setToolbarEnabled(true);
   }
@@ -288,6 +343,78 @@ export const handlers = {
     if (import.meta?.env?.DEV) console.count("zoomOut"); // debug counter
     state.scale = Math.max(state.scale - 0.1, 0.3);
     await rerender();
+  },
+  onPageInput: async (rawValue) => {
+    const current = state.pageNum || 1;
+    const input = ui.pageNumEl();
+    if (!state.pdfDoc) {
+      if (input) {
+        const currentText = String(current);
+        input.value = currentText;
+        input.dataset.current = currentText;
+      }
+      return current;
+    }
+
+    const parsed = parsePageInput(rawValue);
+    if (parsed == null) {
+      const fallback = String(state.pageNum);
+      if (input) {
+        input.value = fallback;
+        input.dataset.current = fallback;
+      }
+      return state.pageNum;
+    }
+
+    const total = state.pdfDoc?.numPages || 1;
+    const target = clamp(parsed, 1, total);
+    if (target !== state.pageNum) {
+      state.pageNum = target;
+      await rerender();
+    } else if (input) {
+      const text = String(state.pageNum);
+      input.value = text;
+      input.dataset.current = text;
+    }
+    return state.pageNum;
+  },
+  onZoomInput: async (rawValue) => {
+    const zoomInput = ui.zoomLevelEl();
+    const currentText = `${Math.round(state.scale * 100)}%`;
+    if (!state.pdfDoc) {
+      if (zoomInput) {
+        zoomInput.value = currentText;
+        zoomInput.dataset.current = currentText;
+      }
+      return currentText;
+    }
+
+    const parsed = parseZoomPercent(rawValue);
+    if (parsed == null) {
+      if (zoomInput) {
+        zoomInput.value = currentText;
+        zoomInput.dataset.current = currentText;
+      }
+      return currentText;
+    }
+
+    const clampedPercent = clamp(parsed, 30, 300);
+    const nextScale = clampedPercent / 100;
+    if (Math.abs(nextScale - state.scale) > 0.0001) {
+      state.scale = nextScale;
+      await rerender();
+    } else if (zoomInput) {
+      const updated = `${Math.round(state.scale * 100)}%`;
+      zoomInput.value = updated;
+      zoomInput.dataset.current = updated;
+    }
+
+    const finalText = `${Math.round(state.scale * 100)}%`;
+    if (zoomInput) {
+      zoomInput.value = finalText;
+      zoomInput.dataset.current = finalText;
+    }
+    return finalText;
   },
   onToolChange: (tool) => {
     state.tool = tool || null;
