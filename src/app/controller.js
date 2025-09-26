@@ -13,7 +13,7 @@ import {
 } from "@ui/overlay";
 import { setPannable } from "@ui/overlay";
 import { saveState, hasDataToLose, clearSavedState } from "./persistence";
-import { undo, redo, historyInit } from "@app/history";
+import { undo, redo, historyInit, jumpToHistory } from "@app/history";
 import { downloadAnnotatedPdf } from "@pdf/exportAnnotated";
 
 import "../styles/switch-dialog.css";
@@ -109,6 +109,7 @@ export async function resetDocumentState() {
   setToolbarEnabled(false);
 
   // Restore "placeholder" so CSS reserves aspect-only space again
+  getViewerEl()?.classList.remove("is-dragover");
   getViewerEl()?.classList.add("placeholder");
 
   await clearSavedState();
@@ -224,6 +225,7 @@ export async function openFile(file) {
 
   // Defer removing placeholder until after the first render (prevents jump)
   clearOverlay();
+  getViewerEl()?.classList.remove("is-dragover");
   state.pdfDoc = doc;
   state.loadedPdfData = rawData;
   state.pageNum = 1;
@@ -235,6 +237,7 @@ export async function openFile(file) {
   state.originalFileName = file?.name || state.originalFileName;
   try { if (file?.name) localStorage.setItem("last_pdf_name", file.name); } catch {}
 
+  getViewerEl()?.classList.remove("is-dragover");
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
 
   await rerender();
@@ -316,5 +319,10 @@ export const handlers = {
   },
   onUndo: async () => { if (undo()) await rerender(); },
   onRedo: async () => { if (redo()) await rerender(); },
+  onHistoryJump: async (entryId) => {
+    const target = Number(entryId);
+    if (!Number.isFinite(target)) return;
+    if (jumpToHistory(target)) await rerender();
+  },
 };
 

@@ -39,7 +39,9 @@ describe('wrapHandler', () => {
 
   it('does NOT commit/save on synchronous failure', () => {
     const err = new Error('boom');
-    const fn = vi.fn().mockImplementation(() => { throw err; });
+    const fn = vi.fn().mockImplementation(() => {
+      throw err;
+    });
     const wrapped = wrapHandler('onSomething', fn);
 
     expect(() => wrapped()).toThrow(err);
@@ -72,16 +74,36 @@ describe('wrapHandler', () => {
     expect(scheduleSave).not.toHaveBeenCalled();
   });
 
-  it('skips wrapping for onUndo/onRedo', () => {
-    const fn = vi.fn().mockReturnValue('pass');
-    const undo = wrapHandler('onUndo', fn);
-    const redo = wrapHandler('onRedo', fn);
+  it('skips wrapping for non-mutating handlers', () => {
+    const names = [
+      'onUndo',
+      'onRedo',
+      'onHistoryJump',
+      'onPrev',
+      'onNext',
+      'onZoomIn',
+      'onZoomOut',
+      'onToolChange',
+      'onPickImage',
+      'onImageSelected',
+    ];
 
-    expect(undo()).toBe('pass');
-    expect(redo()).toBe('pass');
+    names.forEach((name) => {
+      const fn = vi.fn().mockReturnValue('pass');
+      const wrapped = wrapHandler(name, fn);
 
-    expect(historyBegin).not.toHaveBeenCalled();
-    expect(historyCommit).not.toHaveBeenCalled();
-    expect(scheduleSave).not.toHaveBeenCalled();
+      expect(wrapped).toBe(fn);
+      expect(wrapped('x')).toBe('pass');
+      expect(fn).toHaveBeenCalledWith('x');
+
+      expect(historyBegin).not.toHaveBeenCalled();
+      expect(historyCommit).not.toHaveBeenCalled();
+      expect(scheduleSave).not.toHaveBeenCalled();
+
+      historyBegin.mockClear();
+      historyCommit.mockClear();
+      scheduleSave.mockClear();
+    });
   });
 });
+

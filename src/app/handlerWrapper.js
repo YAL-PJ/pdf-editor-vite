@@ -2,6 +2,19 @@
 import { historyBegin, historyCommit } from "@app/history";
 import { scheduleSave } from "@app/persistence";
 
+const SKIP_HISTORY_HANDLERS = new Set([
+  "onUndo",
+  "onRedo",
+  "onHistoryJump",
+  "onPrev",
+  "onNext",
+  "onZoomIn",
+  "onZoomOut",
+  "onToolChange",
+  "onPickImage",
+  "onImageSelected",
+]);
+
 /**
  * Wrap a state-mutating handler with history + autosave.
  * - Begins a history step
@@ -9,29 +22,29 @@ import { scheduleSave } from "@app/persistence";
  * - Never commits on throw/reject
  */
 export const wrapHandler = (name, fn) => {
-  const skip = new Set(["onUndo", "onRedo"]);
-  if (skip.has(name)) return fn;
+  if (SKIP_HISTORY_HANDLERS.has(name)) return fn;
 
   return (...args) => {
-    historyBegin();
+    historyBegin(name);
     try {
       const out = fn?.(...args);
       if (out && typeof out.then === "function") {
-        return out.then((v) => {
-          historyCommit();
-          scheduleSave();
-          return v;
-        }).catch((e) => {
-          // No commit on failure
-          throw e;
-        });
+        return out
+          .then((value) => {
+            historyCommit(name);
+            scheduleSave();
+            return value;
+          })
+          .catch((error) => {
+            throw error;
+          });
       }
-      historyCommit();
+      historyCommit(name);
       scheduleSave();
       return out;
-    } catch (e) {
-      // No commit on failure
-      throw e;
+    } catch (error) {
+      throw error;
     }
   };
 };
+

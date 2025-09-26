@@ -9,6 +9,7 @@ import textIcon from "../../assets/icons/type.svg?raw";
 import imageIcon from "../../assets/icons/image.svg?raw";
 import undoIcon from "../../assets/icons/undo.svg?raw";
 import redoIcon from "../../assets/icons/redo.svg?raw";
+import historyIcon from "../../assets/icons/history.svg?raw";
 
 const icon = (svg) => `<span class="toolbar-btn__icon" aria-hidden="true">${svg}</span>`;
 
@@ -56,6 +57,17 @@ export function createHistoryControlsHTML() {
           ${icon(redoIcon)}
           <span class="toolbar-btn__label">Redo</span>
         </button>
+        <button id="btnHistoryPanel" type="button" class="toolbar-btn toolbar-btn--compact history-controls__toggle" aria-controls="historyPanel" aria-expanded="false" aria-label="Show edit history">
+          ${icon(historyIcon)}
+          <span class="toolbar-btn__label">Timeline</span>
+        </button>
+      </div>
+      <div id="historyPanel" class="history-panel" role="dialog" aria-modal="false" aria-labelledby="historyPanelLabel" hidden>
+        <header class="history-panel__header">
+          <span id="historyPanelLabel">Edit History</span>
+          <button id="btnHistoryPanelClose" type="button" class="history-panel__close" aria-label="Close history">&times;</button>
+        </header>
+        <ul id="historyList" class="history-panel__list"></ul>
       </div>
     </div>
   `;

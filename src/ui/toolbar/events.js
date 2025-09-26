@@ -1,19 +1,64 @@
-// File: src/ui/toolbar/events.js
-
-/**
- * Event handling for toolbar buttons (supports both legacy and new IDs)
- * - Delegated single listener on #toolbar => no per-button duplicates.
- * - Idempotent rebinding with AbortController (HMR/re-bootstrap safe).
- * - Keeps rAF defers for smoothness.
- */
+import { getHistoryTimeline, HISTORY_UPDATED_EVENT } from "@app/history";
 
 let _toolbarEvtController = null;
 
-export function attachToolbarEvents(handlers) {
-  const safe = (fn) => (typeof fn === "function" ? fn : () => {});
-  const log  = (msg) => console.log(`[toolbar] ${msg}`);
+const escapeHtml = (value = "") =>
+  String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
-  // Abort all previously attached listeners (idempotent)
+const formatTime = (timestamp) => {
+  if (!Number.isFinite(timestamp)) return "";
+  try {
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+};
+
+const labelAliases = {
+  onPrev: "Previous page",
+  onNext: "Next page",
+  onZoomIn: "Zoomed in",
+  onZoomOut: "Zoomed out",
+  onImageSelected: "Image ready",
+};
+
+const describeLabel = (label, fallback) => {
+  if (!label) return fallback;
+  return labelAliases[label] || label;
+};
+
+const buildHistoryEntries = () => {
+  const timeline = getHistoryTimeline();
+  if (!timeline) return [];
+  const entries = [];
+  timeline.past
+    .slice()
+    .reverse()
+    .forEach((entry) => entries.push({ ...entry, type: "past" }));
+  if (timeline.present) entries.push({ ...timeline.present, type: "present" });
+  timeline.future.forEach((entry) => entries.push({ ...entry, type: "future" }));
+  return entries;
+};
+
+const statusText = (type) => {
+  if (type === "present") return "Current";
+  if (type === "future") return "Redo";
+  return "Undo";
+};
+
+export function attachToolbarEvents(handlers = {}) {
+  const safe = (fn) => (typeof fn === "function" ? fn : () => {});
+  const log = (msg) => console.log(`[toolbar] ${msg}`);
+
   if (_toolbarEvtController) _toolbarEvtController.abort();
   _toolbarEvtController = new AbortController();
   const { signal } = _toolbarEvtController;
@@ -27,65 +72,141 @@ export function attachToolbarEvents(handlers) {
     return;
   }
 
-  // Map button ids (including legacy aliases) to click handlers
+  const historyPanelEl = q("historyPanel");
+  const historyListEl = q("historyList");
+  const historyToggleBtn = q("btnHistoryPanel");
+  const historyControlsShell = q("historyControls");
+
+  const updateHistoryButtonState = () => {
+    if (!historyToggleBtn) return;
+    const timeline = getHistoryTimeline();
+    if (!timeline) return;
+    const hasOtherEntries =
+      (timeline.past?.length || 0) + (timeline.future?.length || 0) > 0;
+    const isOpen = historyPanelEl?.classList.contains("history-panel--open");
+    historyToggleBtn.disabled = !hasOtherEntries && !isOpen;
+  };
+
+  const renderHistoryPanel = () => {
+    if (!historyListEl) return;
+    const entries = buildHistoryEntries();
+    if (!entries.length) {
+      historyListEl.innerHTML = '<li class="history-panel__empty">No history yet</li>';
+      return;
+    }
+
+    historyListEl.innerHTML = entries
+      .map((entry) => {
+        const disabled = entry.type === "present" ? 'disabled aria-current="true"' : "";
+        const metaParts = [statusText(entry.type)];
+        const time = formatTime(entry.timestamp);
+        if (time) metaParts.push(time);
+        const meta = metaParts.join(" | ");
+        const label = describeLabel(entry.label, `Edit ${entry.id}`);
+        const title =
+          entry.type === "future"
+            ? "Redo to this point"
+            : entry.type === "present"
+            ? "Current state"
+            : "Revert to this point";
+        return `
+          <li class="history-panel__item history-panel__item--${entry.type}">
+            <button type="button" data-history-id="${entry.id}" data-history-type="${entry.type}" ${disabled} title="${escapeHtml(title)}">
+              <span class="history-panel__name">${escapeHtml(label)}</span>
+              <span class="history-panel__meta">${escapeHtml(meta)}</span>
+            </button>
+          </li>`;
+      })
+      .join("");
+  };
+
+  const openHistoryPanel = () => {
+    if (!historyPanelEl) return;
+    renderHistoryPanel();
+    historyPanelEl.hidden = false;
+    historyPanelEl.classList.add("history-panel--open");
+    historyToggleBtn?.setAttribute("aria-expanded", "true");
+    updateHistoryButtonState();
+    const focusTarget = historyPanelEl.querySelector("button:not([disabled])");
+    focusTarget?.focus?.();
+  };
+
+  const closeHistoryPanel = ({ focusToggle } = {}) => {
+    if (!historyPanelEl) return;
+    historyPanelEl.classList.remove("history-panel--open");
+    historyPanelEl.hidden = true;
+    historyToggleBtn?.setAttribute("aria-expanded", "false");
+    updateHistoryButtonState();
+    if (focusToggle && historyToggleBtn) {
+      historyToggleBtn.focus();
+    }
+  };
+
+  const toggleHistoryPanel = () => {
+    if (!historyPanelEl) return;
+    if (historyPanelEl.classList.contains("history-panel--open")) {
+      closeHistoryPanel({ focusToggle: true });
+    } else {
+      openHistoryPanel();
+    }
+  };
+
+  const selectHistoryEntry = (entryId) => {
+    const handler = safe(handlers.onHistoryJump);
+    const result = handler(entryId);
+    const finalize = () => {
+      renderHistoryPanel();
+      updateHistoryButtonState();
+      closeHistoryPanel({ focusToggle: true });
+    };
+    if (result && typeof result.then === "function") {
+      result.then(finalize).catch(() => {});
+    } else {
+      finalize();
+    }
+  };
+
   const clickActions = {
-    // Navigation
     prevPage: () => safe(handlers.onPrev)(),
     nextPage: () => safe(handlers.onNext)(),
-
-    // Zoom
-    zoomIn:  () => requestAnimationFrame(() => safe(handlers.onZoomIn)()),
+    zoomIn: () => requestAnimationFrame(() => safe(handlers.onZoomIn)()),
     zoomOut: () => requestAnimationFrame(() => safe(handlers.onZoomOut)()),
-    zoomFit: () => requestAnimationFrame(() => safe(handlers.onZoomFit)()), // optional
-
-    // Tools (new + legacy ids)
-    toolSelect:    () => safe(handlers.onToolChange)(null),
-    btnSelect:     () => safe(handlers.onToolChange)(null),
-
+    zoomFit: () => requestAnimationFrame(() => safe(handlers.onZoomFit)()),
+    toolSelect: () => safe(handlers.onToolChange)(null),
+    btnSelect: () => safe(handlers.onToolChange)(null),
     toolHighlight: () => safe(handlers.onToolChange)("highlight"),
-    btnHighlight:  () => safe(handlers.onToolChange)("highlight"),
-
-    toolNote:      () => safe(handlers.onToolChange)("note"),
-    btnNote:       () => safe(handlers.onToolChange)("note"),
-
-    toolText:      () => safe(handlers.onToolChange)("text"),
-    btnText:       () => safe(handlers.onToolChange)("text"),
-
-    toolImage:     () => {
-      // Defer tool change, then open picker (keeps click task light)
+    btnHighlight: () => safe(handlers.onToolChange)("highlight"),
+    toolNote: () => safe(handlers.onToolChange)("note"),
+    btnNote: () => safe(handlers.onToolChange)("note"),
+    toolText: () => safe(handlers.onToolChange)("text"),
+    btnText: () => safe(handlers.onToolChange)("text"),
+    toolImage: () =>
       requestAnimationFrame(() => {
         safe(handlers.onToolChange)("image");
         setTimeout(() => safe(handlers.onPickImage)(), 0);
-      });
-    },
-    btnImage:      () => safe(handlers.onToolChange)("image"),
-    btnPickImage:  () => safe(handlers.onPickImage)(),
-
-    // Undo/Redo
+      }),
+    btnImage: () => safe(handlers.onToolChange)("image"),
+    btnPickImage: () => safe(handlers.onPickImage)(),
     btnUndo: () => safe(handlers.onUndo)(),
     btnRedo: () => safe(handlers.onRedo)(),
-
-    // Download
+    btnHistoryPanel: () => toggleHistoryPanel(),
+    btnHistoryPanelClose: () => closeHistoryPanel({ focusToggle: true }),
     btnDownloadAnnotated: () => {
       log("Download annotated");
       requestAnimationFrame(() => {
         document.dispatchEvent(new CustomEvent("annotator:download-requested"));
-        safe(handlers.onDownloadAnnotated)(); // back-compat if still wired
+        safe(handlers.onDownloadAnnotated)();
       });
     },
   };
 
-  // Single delegated click listener on the toolbar container
   toolbarEl.addEventListener(
     "click",
     (e) => {
       const btn = e.target.closest("button");
       if (!btn || !toolbarEl.contains(btn)) return;
-
-      const id = btn.id;
-      const fn = clickActions[id];
+      const fn = clickActions[btn.id];
       if (!fn) return;
-
       e.preventDefault();
       fn();
     },
@@ -99,10 +220,8 @@ export function attachToolbarEvents(handlers) {
       (e) => {
         const btn = e.target.closest("button");
         if (!btn || !navControlsEl.contains(btn)) return;
-
         const fn = clickActions[btn.id];
         if (!fn) return;
-
         e.preventDefault();
         fn();
       },
@@ -110,23 +229,84 @@ export function attachToolbarEvents(handlers) {
     );
   }
 
-  const historyControlsEl = document.getElementById("historyControls");
-  if (historyControlsEl) {
-    historyControlsEl.addEventListener(
+  if (historyControlsShell) {
+    historyControlsShell.addEventListener(
       "click",
       (e) => {
         const btn = e.target.closest("button");
-        if (!btn || !historyControlsEl.contains(btn)) return;
-
+        if (!btn || !historyControlsShell.contains(btn)) return;
+        if (historyPanelEl?.contains(btn)) return;
         const fn = clickActions[btn.id];
         if (!fn) return;
-
         e.preventDefault();
         fn();
       },
       { signal }
     );
   }
+
+  if (historyPanelEl) {
+    historyPanelEl.addEventListener(
+      "click",
+      (e) => {
+        e.stopPropagation();
+        const btn = e.target.closest("button");
+        if (!btn || btn.id !== "btnHistoryPanelClose") return;
+        e.preventDefault();
+        clickActions.btnHistoryPanelClose();
+      },
+      { signal }
+    );
+  }
+
+  if (historyListEl) {
+    historyListEl.addEventListener(
+      "click",
+      (e) => {
+        const button = e.target.closest("[data-history-id]");
+        if (!button) return;
+        const entryId = Number(button.getAttribute("data-history-id"));
+        if (!Number.isFinite(entryId)) return;
+        if (button.disabled || button.getAttribute("aria-current") === "true") return;
+        e.preventDefault();
+        selectHistoryEntry(entryId);
+      },
+      { signal }
+    );
+  }
+
+  document.addEventListener(
+    HISTORY_UPDATED_EVENT,
+    () => {
+      updateHistoryButtonState();
+      if (historyPanelEl?.classList.contains("history-panel--open")) {
+        renderHistoryPanel();
+      }
+    },
+    { signal }
+  );
+
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (!historyPanelEl?.classList.contains("history-panel--open")) return;
+      if (historyPanelEl.contains(e.target)) return;
+      if (historyToggleBtn?.contains(e.target)) return;
+      closeHistoryPanel();
+    },
+    { signal }
+  );
+
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.key === "Escape" && historyPanelEl?.classList.contains("history-panel--open")) {
+        e.stopPropagation();
+        closeHistoryPanel({ focusToggle: true });
+      }
+    },
+    { signal }
+  );
 
   const downloadBtn = q("btnDownloadAnnotated");
   if (downloadBtn && clickActions.btnDownloadAnnotated) {
@@ -140,8 +320,6 @@ export function attachToolbarEvents(handlers) {
     );
   }
 
-  // Hidden file input(s) for images (outside toolbar click delegation)
-  // Preferred: imagePickerInput; Legacy: imagePicker
   const picker = firstEl("imagePickerInput", "imagePicker");
   if (picker && handlers.onImageSelected) {
     picker.addEventListener(
@@ -151,14 +329,15 @@ export function attachToolbarEvents(handlers) {
         try {
           if (file) await safe(handlers.onImageSelected)(file);
         } finally {
-          try { e.target.value = ""; } catch {}
+          try {
+            e.target.value = "";
+          } catch {}
         }
       },
       { signal }
     );
   }
 
-  // Keyboard shortcuts (global). Bind via same controller for clean teardown.
   const isEditableTarget = (el) => {
     if (!el) return false;
     const tag = el.tagName?.toLowerCase();
@@ -175,17 +354,12 @@ export function attachToolbarEvents(handlers) {
     if (isEditableTarget(e.target)) return;
     const mod = e.metaKey || e.ctrlKey;
     if (!mod) return;
-
     const key = e.key.toLowerCase();
-
-    // Undo (Cmd/Ctrl+Z)
     if (key === "z" && !e.shiftKey) {
       e.preventDefault();
       safe(handlers.onUndo)();
       return;
     }
-
-    // Redo (Cmd/Ctrl+Shift+Z or Ctrl+Y)
     if ((key === "z" && e.shiftKey) || key === "y") {
       e.preventDefault();
       safe(handlers.onRedo)();
@@ -194,21 +368,20 @@ export function attachToolbarEvents(handlers) {
 
   document.addEventListener("keydown", onKeyDown, { signal });
 
-  // A11y: set aria-keyshortcuts if buttons exist (optional)
   const undoBtn = q("btnUndo");
   const redoBtn = q("btnRedo");
   if (undoBtn) undoBtn.setAttribute("aria-keyshortcuts", "Ctrl+Z Meta+Z");
   if (redoBtn) redoBtn.setAttribute("aria-keyshortcuts", "Ctrl+Shift+Z Ctrl+Y Meta+Shift+Z");
 
+  updateHistoryButtonState();
+
   log("events attached (delegated)");
 }
-  
-/* HMR-safe: when this module is disposed, abort listeners */
+
 if (import.meta?.hot) {
   import.meta.hot.dispose(() => {
     if (_toolbarEvtController) _toolbarEvtController.abort();
     _toolbarEvtController = null;
   });
 }
-
 
