@@ -66,10 +66,6 @@ export function setupFileInput(onFileSelected) {
             input.showPicker();
           } else {
             console.log("[setupFileInput] opening picker via click fallback");
-
-            input.showPicker();
-          } else {
-
             input.click();
           }
         } catch (err) {
@@ -114,15 +110,15 @@ export function setupFileInput(onFileSelected) {
 
   ["dragenter", "dragover"].forEach((evt) => viewer.addEventListener(evt, handleDragOver));
   ["dragleave", "dragend"].forEach((evt) => viewer.addEventListener(evt, handleDragLeave));
-    viewer.addEventListener("drop", async (e) => {
-      console.log("[setupFileInput] drop on viewer", {
-        ready: isReadyForDrop(),
-        fileCount: e.dataTransfer?.files?.length ?? 0,
-      });
-      if (!isReadyForDrop()) return;
-      e.preventDefault();
-      setDragState(false);
-      const file = e.dataTransfer?.files?.[0];
+  viewer.addEventListener("drop", async (e) => {
+    console.log("[setupFileInput] drop on viewer", {
+      ready: isReadyForDrop(),
+      fileCount: e.dataTransfer?.files?.length ?? 0,
+    });
+    if (!isReadyForDrop()) return;
+    e.preventDefault();
+    setDragState(false);
+    const file = e.dataTransfer?.files?.[0];
     if (!file) return;
     await processFile(file);
     resetInput();
