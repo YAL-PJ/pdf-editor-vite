@@ -52,6 +52,7 @@ export function setupFileInput(onFileSelected) {
     });
 
     if (fileTriggerLabel) {
+
       fileTriggerLabel.addEventListener("click", () => {
         console.log("[setupFileInput] trigger label click");
       });
@@ -65,6 +66,10 @@ export function setupFileInput(onFileSelected) {
             input.showPicker();
           } else {
             console.log("[setupFileInput] opening picker via click fallback");
+
+            input.showPicker();
+          } else {
+
             input.click();
           }
         } catch (err) {
@@ -77,6 +82,7 @@ export function setupFileInput(onFileSelected) {
           console.log("[setupFileInput] trigger label keyup", { key: e.key });
         }
       });
+
     }
   }
 

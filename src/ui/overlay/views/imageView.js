@@ -44,7 +44,10 @@ export function renderImage(layer, ann, pageNum, cw, ch) {
       box._annRef = replaceAnn(pageNum, box._annRef, { rect: [nx, ny, prev[2], prev[3]] });
       return changed && started;
     },
-    pageNum, layer, excludeAnn: ann,
+    pageNum,
+    layer,
+    excludeAnn: ann,
+    historyLabel: () => "Move image",
   });
   box.addEventListener("pointerdown", (e) => {
     // If the pointer starts near the bottom-right corner, let native resize run
@@ -97,6 +100,7 @@ export function renderImage(layer, ann, pageNum, cw, ch) {
     let started = false;
     let curW = startW, curH = startH;
     let shift = e.shiftKey, alt = e.altKey;
+    let resizeLabel = null;
 
     const ctrl = new AbortController();
     const sig = ctrl.signal;
@@ -140,7 +144,8 @@ export function renderImage(layer, ann, pageNum, cw, ch) {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
       if (!started && (dx || dy)) {
-        historyBegin();
+        resizeLabel = "Resize image";
+        historyBegin(resizeLabel);
         started = true;
         document.body.style.userSelect = "none";
       }
@@ -189,7 +194,7 @@ export function renderImage(layer, ann, pageNum, cw, ch) {
         box.style.width  = `${w2}px`;
         box.style.height = `${h2}px`;
         scheduleSave();
-        historyCommit();
+        historyCommit(resizeLabel);
       } else {
         box.style.transform = "";
       }
