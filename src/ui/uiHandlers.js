@@ -7,10 +7,20 @@ export function setupFileInput(onFileSelected) {
   const input = document.getElementById("fileInput");
   const viewer = document.getElementById("viewer");
   const filePanel = document.querySelector(".file-input-panel");
+  const trigger = document.getElementById("filePickerTrigger");
+
+  if (!input) {
+    console.error("fileInput element not found in index.html");
+    return;
+  }
+
 
   const resetInput = () => {
-    if (!input) return;
-    try { input.value = ""; } catch {}
+    try {
+      input.value = "";
+    } catch (error) {
+      console.warn("Unable to reset file input", error);
+    }
   };
 
   const isPdfFile = (file) => {
@@ -19,84 +29,103 @@ export function setupFileInput(onFileSelected) {
     return file.name?.toLowerCase().endsWith(".pdf");
   };
 
-  const processFile = async (file) => {
-    if (!file || !isPdfFile(file)) {
-      if (file) console.warn("Ignored non-PDF file drop:", file.name);
+  const handleFile = async (file) => {
+    if (!file) return;
+    if (!isPdfFile(file)) {
+      console.warn("Ignored non-PDF file:", file.name ?? "unknown");
       return;
     }
-    console.log("User selected file:", file.name);
-    await onFileSelected(file);
+
+    try {
+      await onFileSelected(file);
+    } finally {
+      resetInput();
+    }
   };
 
-  if (!input) {
-    console.error("fileInput element not found in index.html");
-  } else {
-    input.addEventListener("change", async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      try {
-        await processFile(file);
-      } finally {
-        resetInput();
+  const openPicker = () => {
+    try {
+      if (typeof input.showPicker === "function") {
+        input.showPicker();
+      } else {
+        input.click();
       }
-    });
+    } catch (error) {
+      console.error("Failed to open file picker", error);
+      input.click();
+    }
+  };
+
+  input.addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      void handleFile(file);
+    }
+  });
+  trigger?.addEventListener("click", openPicker);
+
+  if (!viewer) {
+    return;
   }
 
-  if (!viewer) return;
-
   const setDragState = (active) => {
-    viewer.classList.toggle("is-dragover", !!active);
+    viewer.classList.toggle("is-dragover", Boolean(active));
   };
 
   const isReadyForDrop = () => viewer.classList.contains("placeholder");
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (event) => {
     if (!isReadyForDrop()) return;
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "copy";
+    }
     setDragState(true);
   };
 
-  const handleDragLeave = (e) => {
+  const handleDragLeave = (event) => {
     if (!isReadyForDrop()) return;
+    const related = event.relatedTarget;
     if (
-      e.relatedTarget &&
-      (viewer.contains(e.relatedTarget) || filePanel?.contains(e.relatedTarget))
+      related &&
+      (viewer.contains(related) || (filePanel && filePanel.contains(related)))
     ) {
       return;
     }
     setDragState(false);
   };
 
-  ["dragenter", "dragover"].forEach((evt) => viewer.addEventListener(evt, handleDragOver));
-  ["dragleave", "dragend"].forEach((evt) => viewer.addEventListener(evt, handleDragLeave));
-  viewer.addEventListener("drop", async (e) => {
+  const handleDrop = (event) => {
     if (!isReadyForDrop()) return;
-    e.preventDefault();
+    event.preventDefault();
     setDragState(false);
-    const file = e.dataTransfer?.files?.[0];
-    if (!file) return;
-    await processFile(file);
-    resetInput();
-  });
+    const file = event.dataTransfer?.files?.[0];
+    if (file) {
+      void handleFile(file);
+    }
+  };
+
+  ["dragenter", "dragover"].forEach((type) =>
+    viewer.addEventListener(type, handleDragOver),
+  );
+  ["dragleave", "dragend"].forEach((type) =>
+    viewer.addEventListener(type, handleDragLeave),
+  );
+  viewer.addEventListener("drop", handleDrop);
 
   if (filePanel) {
-    ["dragenter", "dragover"].forEach((evt) => filePanel.addEventListener(evt, handleDragOver));
-    ["dragleave", "dragend"].forEach((evt) => filePanel.addEventListener(evt, handleDragLeave));
-    filePanel.addEventListener("drop", async (e) => {
-      if (!isReadyForDrop()) return;
-      e.preventDefault();
-      setDragState(false);
-      const file = e.dataTransfer?.files?.[0];
-      if (!file) return;
-      await processFile(file);
-      resetInput();
-    });
+    ["dragenter", "dragover"].forEach((type) =>
+      filePanel.addEventListener(type, handleDragOver),
+    );
+    ["dragleave", "dragend"].forEach((type) =>
+      filePanel.addEventListener(type, handleDragLeave),
+    );
+    filePanel.addEventListener("drop", handleDrop);
   }
 
-  const blockWindowDrop = (e) => {
+  const blockWindowDrop = (event) => {
     if (!isReadyForDrop()) return;
-    e.preventDefault();
+    event.preventDefault();
   };
 
   window.addEventListener("dragover", blockWindowDrop);

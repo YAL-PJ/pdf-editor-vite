@@ -29,10 +29,21 @@
   gap: 12px;
   margin: 0 0 16px;
   text-align: center;
+  position: relative;
 }
 
-.file-input-panel input[type="file"] {
-  display: none;
+.file-input-native {
+  position: absolute;
+  inset: auto;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
 }
 
 .file-input-button {
@@ -207,11 +218,27 @@
 
 
 .viewer-header {
+  background: linear-gradient(135deg, #fbe5ef 0%, #fff4f9 100%);
+  margin: 0 0 32px;
+  padding: clamp(20px, 4vw, 36px) clamp(24px, 5vw, 48px);
+  border-top: 1px solid rgba(247, 196, 212, 0.6);
+  border-bottom: 1px solid rgba(247, 196, 212, 0.6);
+  box-shadow: 0 6px 18px -14px rgba(109, 61, 84, 0.45);
+}
+
+.viewer-header__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: clamp(16px, 4vw, 48px);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.viewer-header h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2vw + 1rem, 2.1rem);
+  font-weight: 700;
 }
 
 
@@ -257,7 +284,7 @@
 }
 
 @media (max-width: 640px) {
-  .viewer-header {
+  .viewer-header__inner {
     flex-direction: column;
     align-items: stretch;
   }
@@ -321,43 +348,6 @@
 }
 
 /* ---------- Viewer ---------- */
-.drop-overlay {
-  position: absolute;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 12px;
-  border: 2px dashed rgba(255, 255, 255, 0.35);
-  border-radius: 18px;
-  background: rgba(40, 32, 38, 0.12);
-  color: var(--muted);
-  text-align: center;
-  pointer-events: none;
-  padding: 24px;
-}
-
-#viewer.placeholder .drop-overlay {
-  display: flex;
-}
-
-#viewer.is-dragover .drop-overlay {
-  border-color: rgba(255, 122, 162, 0.85);
-  background: rgba(255, 122, 162, 0.18);
-  color: var(--accent);
-}
-
-.drop-overlay__icon {
-  font-size: 2.2rem;
-}
-
-.drop-overlay__text {
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-
 .drop-overlay {
   position: absolute;
   inset: 0;
