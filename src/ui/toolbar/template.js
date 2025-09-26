@@ -47,7 +47,6 @@ export function createNavControlsHTML() {
 export function createHistoryControlsHTML() {
   return `
     <div class="history-controls">
-      <span class="history-controls__label">History</span>
       <div class="history-controls__buttons">
         <button id="btnUndo" type="button" class="toolbar-btn toolbar-btn--compact" aria-label="Undo last action" title="Undo (Ctrl/Cmd+Z)">
           ${icon(undoIcon)}
@@ -59,7 +58,7 @@ export function createHistoryControlsHTML() {
         </button>
         <button id="btnHistoryPanel" type="button" class="toolbar-btn toolbar-btn--compact history-controls__toggle" aria-controls="historyPanel" aria-expanded="false" aria-label="Show edit history">
           ${icon(historyIcon)}
-          <span class="toolbar-btn__label">Timeline</span>
+          <span class="toolbar-btn__label">History</span>
         </button>
       </div>
       <div id="historyPanel" class="history-panel" role="dialog" aria-modal="false" aria-labelledby="historyPanelLabel" hidden>

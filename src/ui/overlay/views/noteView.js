@@ -4,6 +4,14 @@ import { replaceAnn, removeAnn } from "../stateOps";
 import { makeDrag } from "../drag";
 import { scheduleSave } from "@app/persistence";
 
+const summarizeText = (value = "") => {
+  const normalized = String(value)
+    .replace(/\u00A0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return "";
+  return normalized.length > 40 ? `${normalized.slice(0, 37)}…` : normalized;
+};
 
 export function renderNote(layer, ann, pageNum, cw, ch) {
   const [x, y] = denormalizePoint(ann.pos[0], ann.pos[1], cw, ch);
@@ -26,7 +34,13 @@ export function renderNote(layer, ann, pageNum, cw, ch) {
       root._annRef = replaceAnn(pageNum, root._annRef, { pos:[nx,ny] });
       return changed && started;
     },
-    pageNum, layer, excludeAnn: ann
+    pageNum,
+    layer,
+    excludeAnn: ann,
+    historyLabel: () => {
+      const summary = summarizeText(root._annRef?.text || "");
+      return summary ? `Move note: "${summary}"` : "Move note";
+    },
   });
   header.addEventListener("pointerdown", (e)=>startNoteDrag(e, header), { passive: false });
 
@@ -34,18 +48,22 @@ export function renderNote(layer, ann, pageNum, cw, ch) {
     const prev = root._annRef.text || "";
     const next = body.textContent || "";
     if (prev !== next) {
-      historyBegin();
+      const summary = summarizeText(next);
+      const label = summary ? `Update note: "${summary}"` : "Clear note";
+      historyBegin(label);
       root._annRef = replaceAnn(pageNum, root._annRef, { text: next });
       scheduleSave();
-      historyCommit();
+      historyCommit(label);
     }
   });
   close.addEventListener("click", () => {
-    historyBegin();
+    const summary = summarizeText(root._annRef?.text || "");
+    const label = summary ? `Delete note: "${summary}"` : "Delete note";
+    historyBegin(label);
     removeAnn(pageNum, root._annRef);
     root.remove();
     scheduleSave();
-    historyCommit();
+    historyCommit(label);
   });
 
   layer.appendChild(root);
