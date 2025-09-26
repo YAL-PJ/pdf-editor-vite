@@ -192,6 +192,40 @@
   letter-spacing: 0.03em;
 }
 
+.page-info__field,
+.nav-controls__zoom-input {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  min-width: 0;
+  width: 4ch;
+}
+
+.nav-controls__zoom-input {
+  width: 6ch;
+}
+
+.page-info__field:focus-visible,
+.nav-controls__zoom-input:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.page-info__field:disabled,
+.nav-controls__zoom-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.page-info__field::placeholder,
+.nav-controls__zoom-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 .nav-controls #zoomLevel {
   min-width: 64px;
   text-align: center;
