@@ -7,6 +7,13 @@ export function setupFileInput(onFileSelected) {
   const input = document.getElementById("fileInput");
   const viewer = document.getElementById("viewer");
   const filePanel = document.querySelector(".file-input-panel");
+  const fileTriggerLabel = document.querySelector('label[for="fileInput"]');
+
+  console.log("[setupFileInput] initializing", {
+    hasInput: !!input,
+    hasTriggerLabel: !!fileTriggerLabel,
+    hasViewer: !!viewer,
+  });
 
   const resetInput = () => {
     if (!input) return;
@@ -32,6 +39,9 @@ export function setupFileInput(onFileSelected) {
     console.error("fileInput element not found in index.html");
   } else {
     input.addEventListener("change", async (e) => {
+      console.log("[setupFileInput] input change fired", {
+        fileCount: e.target.files?.length ?? 0,
+      });
       const file = e.target.files && e.target.files[0];
       if (!file) return;
       try {
@@ -40,6 +50,34 @@ export function setupFileInput(onFileSelected) {
         resetInput();
       }
     });
+
+    if (fileTriggerLabel) {
+      fileTriggerLabel.addEventListener("click", () => {
+        console.log("[setupFileInput] trigger label click");
+      });
+
+      fileTriggerLabel.addEventListener("keydown", (e) => {
+        if (e.key !== " " && e.key !== "Enter") return;
+        e.preventDefault();
+        try {
+          if (typeof input.showPicker === "function") {
+            console.log("[setupFileInput] opening picker via showPicker");
+            input.showPicker();
+          } else {
+            console.log("[setupFileInput] opening picker via click fallback");
+            input.click();
+          }
+        } catch (err) {
+          console.error("Failed to open file picker from keyboard", err);
+        }
+      });
+
+      fileTriggerLabel.addEventListener("keyup", (e) => {
+        if (e.key === " " || e.key === "Enter") {
+          console.log("[setupFileInput] trigger label keyup", { key: e.key });
+        }
+      });
+    }
   }
 
   if (!viewer) return;
@@ -70,11 +108,15 @@ export function setupFileInput(onFileSelected) {
 
   ["dragenter", "dragover"].forEach((evt) => viewer.addEventListener(evt, handleDragOver));
   ["dragleave", "dragend"].forEach((evt) => viewer.addEventListener(evt, handleDragLeave));
-  viewer.addEventListener("drop", async (e) => {
-    if (!isReadyForDrop()) return;
-    e.preventDefault();
-    setDragState(false);
-    const file = e.dataTransfer?.files?.[0];
+    viewer.addEventListener("drop", async (e) => {
+      console.log("[setupFileInput] drop on viewer", {
+        ready: isReadyForDrop(),
+        fileCount: e.dataTransfer?.files?.length ?? 0,
+      });
+      if (!isReadyForDrop()) return;
+      e.preventDefault();
+      setDragState(false);
+      const file = e.dataTransfer?.files?.[0];
     if (!file) return;
     await processFile(file);
     resetInput();
@@ -84,6 +126,10 @@ export function setupFileInput(onFileSelected) {
     ["dragenter", "dragover"].forEach((evt) => filePanel.addEventListener(evt, handleDragOver));
     ["dragleave", "dragend"].forEach((evt) => filePanel.addEventListener(evt, handleDragLeave));
     filePanel.addEventListener("drop", async (e) => {
+      console.log("[setupFileInput] drop on file panel", {
+        ready: isReadyForDrop(),
+        fileCount: e.dataTransfer?.files?.length ?? 0,
+      });
       if (!isReadyForDrop()) return;
       e.preventDefault();
       setDragState(false);

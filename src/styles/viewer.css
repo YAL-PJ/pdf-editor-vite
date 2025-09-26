@@ -29,10 +29,21 @@
   gap: 12px;
   margin: 0 0 16px;
   text-align: center;
+  position: relative;
 }
 
-.file-input-panel input[type="file"] {
-  display: none;
+.file-input-native {
+  position: absolute;
+  inset: auto;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
 }
 
 .file-input-button {
