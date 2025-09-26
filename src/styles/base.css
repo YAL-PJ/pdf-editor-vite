@@ -22,7 +22,7 @@ main {
 .page-shell {
   width: min(100%, 1200px);
   margin: 0 auto;
-  padding: 16px;
+  padding: 0 16px 16px;
 }
 
 .site-footer {
@@ -30,10 +30,8 @@ main {
   background: var(--panel);
   border-top: 1px solid var(--panel-border);
   color: var(--fg);
-  padding: 32px 16px 40px;
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
+  padding: 32px clamp(24px, 5vw, 48px) 40px;
+  width: 100%;
 }
 
 .site-footer__inner {
@@ -83,7 +81,8 @@ main {
 .site-footer__note {
   margin: 32px auto 0;
   max-width: 1200px;
-  padding: 0 16px;
+  padding: 0 clamp(24px, 5vw, 48px);
   font-size: 0.875rem;
   color: var(--muted);
 }
+

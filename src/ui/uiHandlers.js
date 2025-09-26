@@ -8,12 +8,12 @@ export function setupFileInput(onFileSelected) {
   const viewer = document.getElementById("viewer");
   const filePanel = document.querySelector(".file-input-panel");
   const trigger = document.getElementById("filePickerTrigger");
+  const fileTriggerLabel = document.querySelector(".file-trigger-label"); // Added this line
 
   if (!input) {
     console.error("fileInput element not found in index.html");
     return;
   }
-
 
   const resetInput = () => {
     try {
@@ -50,35 +50,39 @@ export function setupFileInput(onFileSelected) {
       } else {
         input.click();
       }
+    } catch (err) { // Fixed: added missing catch block
+      console.error("Failed to open file picker", err);
+    }
+  };
+
+  if (fileTriggerLabel) {
+    fileTriggerLabel.addEventListener("click", () => {
+      console.log("[setupFileInput] trigger label click");
+      openPicker(); // Added function call
     });
 
-    if (fileTriggerLabel) {
-
-      fileTriggerLabel.addEventListener("click", () => {
-        console.log("[setupFileInput] trigger label click");
-      });
-
-      fileTriggerLabel.addEventListener("keydown", (e) => {
-        if (e.key !== " " && e.key !== "Enter") return;
-        e.preventDefault();
-        try {
-          if (typeof input.showPicker === "function") {
-            console.log("[setupFileInput] opening picker via showPicker");
-            input.showPicker();
-          } else {
-            console.log("[setupFileInput] opening picker via click fallback");
-            input.click();
-          }
-        } catch (err) {
-          console.error("Failed to open file picker from keyboard", err);
+    fileTriggerLabel.addEventListener("keydown", (e) => {
+      if (e.key !== " " && e.key !== "Enter") return;
+      e.preventDefault();
+      try {
+        if (typeof input.showPicker === "function") {
+          console.log("[setupFileInput] opening picker via showPicker");
+          input.showPicker();
+        } else {
+          console.log("[setupFileInput] opening picker via click fallback");
+          input.click();
         }
-      });
+      } catch (err) {
+        console.error("Failed to open file picker from keyboard", err);
+      }
+    });
 
-      fileTriggerLabel.addEventListener("keyup", (e) => {
-        if (e.key === " " || e.key === "Enter") {
-          console.log("[setupFileInput] trigger label keyup", { key: e.key });
-        }
-      });
+    fileTriggerLabel.addEventListener("keyup", (e) => {
+      if (e.key === " " || e.key === "Enter") {
+        console.log("[setupFileInput] trigger label keyup", { key: e.key });
+      }
+    });
+  }
 
   input.addEventListener("change", (event) => {
     const file = event.target.files?.[0];
@@ -86,6 +90,7 @@ export function setupFileInput(onFileSelected) {
       void handleFile(file);
     }
   });
+  
   trigger?.addEventListener("click", openPicker);
 
   if (!viewer) {
@@ -118,9 +123,9 @@ export function setupFileInput(onFileSelected) {
     }
     setDragState(false);
   };
-  ["dragenter", "dragover"].forEach((evt) => viewer.addEventListener(evt, handleDragOver));
-  ["dragleave", "dragend"].forEach((evt) => viewer.addEventListener(evt, handleDragLeave));
-  viewer.addEventListener("drop", async (e) => {
+
+  // Fixed: Defined the missing handleDrop function
+  const handleDrop = async (e) => {
     console.log("[setupFileInput] drop on viewer", {
       ready: isReadyForDrop(),
       fileCount: e.dataTransfer?.files?.length ?? 0,
@@ -129,12 +134,13 @@ export function setupFileInput(onFileSelected) {
     e.preventDefault();
     setDragState(false);
 
-    const file = event.dataTransfer?.files?.[0];
+    const file = e.dataTransfer?.files?.[0]; // Fixed: changed from 'event' to 'e'
     if (file) {
       void handleFile(file);
     }
   };
 
+  // Removed duplicate event listeners - keeping only one set
   ["dragenter", "dragover"].forEach((type) =>
     viewer.addEventListener(type, handleDragOver)
   );
@@ -142,7 +148,6 @@ export function setupFileInput(onFileSelected) {
     viewer.addEventListener(type, handleDragLeave)
   );
   viewer.addEventListener("drop", handleDrop);
-
 
   if (filePanel) {
     ["dragenter", "dragover"].forEach((type) =>
