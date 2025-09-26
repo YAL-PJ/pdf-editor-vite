@@ -122,13 +122,14 @@ export function initNotePlacement() {
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
     const nx = x / cw, ny = y / ch;
 
-    historyBegin();
+    const label = `Add note (page ${state.pageNum})`;
+    historyBegin(label);
     const bucket = ensureMutablePageAnnotations(state.pageNum);
     // Start empty; CSS placeholder will show, and we'll autofocus it below
     bucket.push({ type: "note", pos: [nx, ny], text: "" });
-      markAnnotationsChanged();
-      saveState();
-    historyCommit();
+    markAnnotationsChanged();
+    saveState();
+    historyCommit(label);
 
     renderAnnotationsForPage(state.pageNum);
 

@@ -102,11 +102,12 @@ export function initHighlightDrag() {
       if (w > 3 && h > 3) {
         const bucket = ensureMutablePageAnnotations(state.pageNum);
         const rectN = normalizeRect(x, y, w, h, cw, ch);
-        historyBegin();
+        const label = `Add highlight (page ${state.pageNum})`;
+        historyBegin(label);
         bucket.push({ type: "highlight", rect: rectN });
         markAnnotationsChanged();
         saveState();
-        historyCommit();
+        historyCommit(label);
       }
       renderAnnotationsForPage(state.pageNum);
 

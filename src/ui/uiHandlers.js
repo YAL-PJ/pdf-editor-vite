@@ -14,6 +14,7 @@ export function setupFileInput(onFileSelected) {
     return;
   }
 
+
   const resetInput = () => {
     try {
       input.value = "";
@@ -61,7 +62,6 @@ export function setupFileInput(onFileSelected) {
       void handleFile(file);
     }
   });
-
   trigger?.addEventListener("click", openPicker);
 
   if (!viewer) {
@@ -94,7 +94,6 @@ export function setupFileInput(onFileSelected) {
     }
     setDragState(false);
   };
-
   const handleDrop = (event) => {
     if (!isReadyForDrop()) return;
     event.preventDefault();
