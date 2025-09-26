@@ -75,7 +75,8 @@ export function initTextDrag() {
 
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
 
-    historyBegin();
+    const label = `Add text box (page ${state.pageNum})`;
+    historyBegin(label);
     const rectN = normalizeRect(x, y, w, h, cw, ch);
     const ann = {
       type: "text",
@@ -90,7 +91,7 @@ export function initTextDrag() {
     bucket.push(ann);
     markAnnotationsChanged();
     saveState();
-    historyCommit();
+    historyCommit(label);
 
     renderAnnotationsForPage(state.pageNum);
 
