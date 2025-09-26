@@ -4,11 +4,43 @@ import { renderConfig, clamp, rafThrottle, snapEdge, snapGrid } from "./config";
 import { scheduleSave } from "@app/persistence";
 import { collectGuides, ensureGuideElems, magneticSnapMove } from "./guides";
 
-export function makeDrag({ getStartLeftTop, getSizeAtStart, applyVisual, clearVisual, commit, pageNum, layer, excludeAnn }) {
-  let sx=0, sy=0, ox=0, oy=0, dx=0, dy=0, started=false, size={cw:0,ch:0,w:0,h:0}, pid=null, ctrl=null, captureEl=null;
+export function makeDrag({
+  getStartLeftTop,
+  getSizeAtStart,
+  applyVisual,
+  clearVisual,
+  commit,
+  pageNum,
+  layer,
+  excludeAnn,
+  historyLabel,
+}) {
+  let sx = 0,
+    sy = 0,
+    ox = 0,
+    oy = 0,
+    dx = 0,
+    dy = 0,
+    started = false,
+    size = { cw: 0, ch: 0, w: 0, h: 0 },
+    pid = null,
+    ctrl = null,
+    captureEl = null;
   let shift=false, alt=false;
   const guideUI = ensureGuideElems(layer);
   let guides = { xLines: [], yLines: [] };
+  let activeHistoryLabel = null;
+
+  const resolveHistoryLabel = () => {
+    if (typeof historyLabel === "function") {
+      try {
+        return historyLabel() || null;
+      } catch {
+        return null;
+      }
+    }
+    return historyLabel || null;
+  };
 
   const paint = rafThrottle(() => {
     const edgeThr = renderConfig.snapEdgePx, grid = renderConfig.gridPx;
@@ -31,7 +63,12 @@ export function makeDrag({ getStartLeftTop, getSizeAtStart, applyVisual, clearVi
   const onMove = (e) => {
     if (e.pointerId !== pid) return;
     dx = e.clientX - sx; dy = e.clientY - sy;
-    if (!started && (dx || dy)) { historyBegin(); started = true; document.body.style.userSelect = "none"; }
+    if (!started && (dx || dy)) {
+      activeHistoryLabel = resolveHistoryLabel();
+      historyBegin(activeHistoryLabel);
+      started = true;
+      document.body.style.userSelect = "none";
+    }
     paint();
   };
 
@@ -55,7 +92,11 @@ export function makeDrag({ getStartLeftTop, getSizeAtStart, applyVisual, clearVi
     if (alt) { fx = snapGrid(fx, grid); fy = snapGrid(fy, grid); }
 
     const changed = !cancelled && commit(fx, fy, size.cw, size.ch, started);
-    if (changed && started){ scheduleSave(); historyCommit(); }
+    if (changed && started) {
+      scheduleSave();
+      historyCommit(activeHistoryLabel);
+    }
+    activeHistoryLabel = null;
     ctrl?.abort();
   };
 

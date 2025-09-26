@@ -7,6 +7,15 @@ import { scheduleSave } from "@app/persistence";
 import { collectGuides, ensureGuideElems, magneticSnapResize } from "../guides";
 import { makeDrag } from "../drag";
 
+const summarizeText = (value = "") => {
+  const normalized = String(value)
+    .replace(/\u00A0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return "";
+  return normalized.length > 50 ? `${normalized.slice(0, 47)}…` : normalized;
+};
+
 export function renderText(layer, ann, pageNum, cw, ch) {
   const [nx, ny, nw, nh] = ann.rect;
   const x = nx * cw, y = ny * ch, w = nw * cw, h = nh * ch;
@@ -57,10 +66,12 @@ export function renderText(layer, ann, pageNum, cw, ch) {
     const prev = cur.text || "";
     const next = body.textContent || "";
     if (prev !== next) {
-      historyBegin();
+      const summary = summarizeText(next);
+      const label = summary ? `Update text: "${summary}"` : "Clear text box";
+      historyBegin(label);
       cur = replaceAnn(pageNum, cur, { text: next });
       scheduleSave();
-      historyCommit();
+      historyCommit(label);
     }
     updateEmpty();
   });
@@ -81,7 +92,13 @@ export function renderText(layer, ann, pageNum, cw, ch) {
       if (changed && started){ cur = replaceAnn(pageNum, cur, { rect:[xN, yN, cur.rect[2], cur.rect[3]] }); }
       return changed && started;
     },
-    pageNum, layer, excludeAnn: cur
+    pageNum,
+    layer,
+    excludeAnn: cur,
+    historyLabel: () => {
+      const summary = summarizeText(cur?.text || "");
+      return summary ? `Move text: "${summary}"` : "Move text box";
+    },
   });
   head.addEventListener("pointerdown", (e)=>startTextDrag(e, head), { passive: false });
 
@@ -100,6 +117,7 @@ export function renderText(layer, ann, pageNum, cw, ch) {
     let started = false;
     let curW = startW, curH = startH;
     let shift = e.shiftKey, alt = e.altKey;
+    let resizeLabel = null;
 
     const ctrl = new AbortController();
     const sig = ctrl.signal;
@@ -142,7 +160,9 @@ export function renderText(layer, ann, pageNum, cw, ch) {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
       if (!started && (dx || dy)) {
-        historyBegin();
+        const summary = summarizeText(cur?.text || "");
+        resizeLabel = summary ? `Resize text: "${summary}"` : "Resize text box";
+        historyBegin(resizeLabel);
         started = true;
         document.body.style.userSelect = "none";
       }
@@ -199,7 +219,7 @@ export function renderText(layer, ann, pageNum, cw, ch) {
         body.style.fontSize = `${cur.fontSize}px`;
 
         scheduleSave();
-        historyCommit();
+        historyCommit(resizeLabel);
       } else {
         // No size change, just clear the transform preview
         box.style.transform = "";
@@ -217,10 +237,12 @@ export function renderText(layer, ann, pageNum, cw, ch) {
   }, { passive: false });
 
   close.addEventListener("click", () => {
-    historyBegin();
+    const summary = summarizeText(cur?.text || "");
+    const label = summary ? `Delete text: "${summary}"` : "Delete text box";
+    historyBegin(label);
     removeAnn(pageNum, cur);
     box.remove();
     scheduleSave();
-    historyCommit();
+    historyCommit(label);
   });
 }
