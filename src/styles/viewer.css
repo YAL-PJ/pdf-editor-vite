@@ -505,8 +505,6 @@
   scrollbar-gutter: stable both-edges;
 }
 
-/* Keep whole-page layout stable if body scrollbars appear */
-html { scrollbar-gutter: stable both-edges; }
 
 #pdfCanvas {
   display: block;
