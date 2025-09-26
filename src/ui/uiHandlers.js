@@ -94,6 +94,7 @@ export function setupFileInput(onFileSelected) {
     }
     setDragState(false);
   };
+
   const handleDrop = (event) => {
     if (!isReadyForDrop()) return;
     event.preventDefault();
