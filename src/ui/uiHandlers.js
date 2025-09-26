@@ -106,19 +106,19 @@ export function setupFileInput(onFileSelected) {
   };
 
   ["dragenter", "dragover"].forEach((type) =>
-    viewer.addEventListener(type, handleDragOver),
+    viewer.addEventListener(type, handleDragOver)
   );
   ["dragleave", "dragend"].forEach((type) =>
-    viewer.addEventListener(type, handleDragLeave),
+    viewer.addEventListener(type, handleDragLeave)
   );
   viewer.addEventListener("drop", handleDrop);
 
   if (filePanel) {
     ["dragenter", "dragover"].forEach((type) =>
-      filePanel.addEventListener(type, handleDragOver),
+      filePanel.addEventListener(type, handleDragOver)
     );
     ["dragleave", "dragend"].forEach((type) =>
-      filePanel.addEventListener(type, handleDragLeave),
+      filePanel.addEventListener(type, handleDragLeave)
     );
     filePanel.addEventListener("drop", handleDrop);
   }

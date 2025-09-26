@@ -11,6 +11,9 @@ let bootstrapped = false;
  * @param {{
  *   onRequestImage: () => void,
  *   onDownloadRequested: () => void | Promise<void>,
+ *   onPrintRequested?: () => void | Promise<void>,
+ *   onShareRequested?: () => void | Promise<void>,
+ *   onSaveLocalRequested?: () => void | Promise<void>,
  *   updateRenderConfig: (patchOrConfig: object) => void,
  *   getRenderPrefs: () => object,
  *   toggleGuides: () => object,   // returns new prefs
@@ -23,6 +26,9 @@ let bootstrapped = false;
 export function attachGlobalListeners({
   onRequestImage,
   onDownloadRequested,
+  onPrintRequested,
+  onShareRequested,
+  onSaveLocalRequested,
   updateRenderConfig,
   getRenderPrefs,
   toggleGuides,
@@ -82,10 +88,25 @@ export function attachGlobalListeners({
     await onDownloadRequested?.();
   }
 
+  async function handlePrintRequested() {
+    await onPrintRequested?.();
+  }
+
+  async function handleShareRequested() {
+    await onShareRequested?.();
+  }
+
+  async function handleSaveLocalRequested() {
+    await onSaveLocalRequested?.();
+  }
+
   window.addEventListener("keydown", onShortcut);
   document.addEventListener("keydown", onEsc);
   document.addEventListener("annotator:request-image", handleRequestImage);
   document.addEventListener("annotator:download-requested", handleDownloadRequested);
+  document.addEventListener("annotator:print-requested", handlePrintRequested);
+  document.addEventListener("annotator:share-requested", handleShareRequested);
+  document.addEventListener("annotator:save-local-requested", handleSaveLocalRequested);
 
   if (import.meta?.hot) {
     import.meta.hot.dispose(() => {
@@ -93,6 +114,9 @@ export function attachGlobalListeners({
       document.removeEventListener("keydown", onEsc);
       document.removeEventListener("annotator:request-image", handleRequestImage);
       document.removeEventListener("annotator:download-requested", handleDownloadRequested);
+      document.removeEventListener("annotator:print-requested", handlePrintRequested);
+      document.removeEventListener("annotator:share-requested", handleShareRequested);
+      document.removeEventListener("annotator:save-local-requested", handleSaveLocalRequested);
       bootstrapped = false;
     });
   }
