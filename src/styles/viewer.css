@@ -218,11 +218,27 @@
 
 
 .viewer-header {
+  background: linear-gradient(135deg, #fbe5ef 0%, #fff4f9 100%);
+  margin: 0 0 32px;
+  padding: clamp(20px, 4vw, 36px) clamp(24px, 5vw, 48px);
+  border-top: 1px solid rgba(247, 196, 212, 0.6);
+  border-bottom: 1px solid rgba(247, 196, 212, 0.6);
+  box-shadow: 0 6px 18px -14px rgba(109, 61, 84, 0.45);
+}
+
+.viewer-header__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: clamp(16px, 4vw, 48px);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.viewer-header h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2vw + 1rem, 2.1rem);
+  font-weight: 700;
 }
 
 
@@ -268,7 +284,7 @@
 }
 
 @media (max-width: 640px) {
-  .viewer-header {
+  .viewer-header__inner {
     flex-direction: column;
     align-items: stretch;
   }
