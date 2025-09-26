@@ -10,6 +10,16 @@ export function initPanScroll() {
   const scroller = () => document.querySelector('.viewer-scroll');
   const isInteractiveTarget = (el) => {
     if (!el) return false;
+
+    // Allow default behaviour for obvious interactive controls inside the viewer shell.
+    if (
+      el.closest?.(
+        'button, [role="button"], a, input, label, textarea, select, .file-input-panel'
+      )
+    ) {
+      return true;
+    }
+
     // Don't hijack drags that start on interactive overlay elements or editors
     return !!(
       el.closest?.('.text-box, .sticky-note, .image-box, .text-header, .text-resize-handle') ||
