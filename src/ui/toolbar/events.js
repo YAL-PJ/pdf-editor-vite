@@ -166,6 +166,14 @@ export function attachToolbarEvents(handlers = {}) {
     }
   };
 
+  const runDocumentAction = (eventName, handlerName, logLabel) => {
+    if (logLabel) log(logLabel);
+    requestAnimationFrame(() => {
+      document.dispatchEvent(new CustomEvent(eventName));
+      safe(handlers[handlerName])();
+    });
+  };
+
   const clickActions = {
     prevPage: () => safe(handlers.onPrev)(),
     nextPage: () => safe(handlers.onNext)(),
@@ -191,13 +199,30 @@ export function attachToolbarEvents(handlers = {}) {
     btnRedo: () => safe(handlers.onRedo)(),
     btnHistoryPanel: () => toggleHistoryPanel(),
     btnHistoryPanelClose: () => closeHistoryPanel({ focusToggle: true }),
-    btnDownloadAnnotated: () => {
-      log("Download annotated");
-      requestAnimationFrame(() => {
-        document.dispatchEvent(new CustomEvent("annotator:download-requested"));
-        safe(handlers.onDownloadAnnotated)();
-      });
-    },
+    btnDownloadAnnotated: () =>
+      runDocumentAction(
+        "annotator:download-requested",
+        "onDownloadAnnotated",
+        "Download annotated"
+      ),
+    btnPrintAnnotated: () =>
+      runDocumentAction(
+        "annotator:print-requested",
+        "onPrintAnnotated",
+        "Print annotated"
+      ),
+    btnShareAnnotated: () =>
+      runDocumentAction(
+        "annotator:share-requested",
+        "onShareAnnotated",
+        "Share annotated"
+      ),
+    btnSaveLocalAnnotated: () =>
+      runDocumentAction(
+        "annotator:save-local-requested",
+        "onSaveLocalAnnotated",
+        "Save annotations locally"
+      ),
   };
 
   toolbarEl.addEventListener(
@@ -308,17 +333,25 @@ export function attachToolbarEvents(handlers = {}) {
     { signal }
   );
 
-  const downloadBtn = q("btnDownloadAnnotated");
-  if (downloadBtn && clickActions.btnDownloadAnnotated) {
-    downloadBtn.addEventListener(
+  const headerActionButtons = [
+    "btnDownloadAnnotated",
+    "btnPrintAnnotated",
+    "btnShareAnnotated",
+    "btnSaveLocalAnnotated",
+  ];
+
+  headerActionButtons.forEach((id) => {
+    const button = q(id);
+    if (!button || !clickActions[id]) return;
+    button.addEventListener(
       "click",
       (e) => {
         e.preventDefault();
-        clickActions.btnDownloadAnnotated();
+        clickActions[id]();
       },
       { signal }
     );
-  }
+  });
 
   const picker = firstEl("imagePickerInput", "imagePicker");
   if (picker && handlers.onImageSelected) {

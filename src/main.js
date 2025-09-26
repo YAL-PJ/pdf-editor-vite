@@ -8,7 +8,7 @@ import { bootstrapUI } from "@app/bootstrap";
 import { attachGlobalListeners } from "@app/listeners";
 
 import { openFile, handlers, restoreFile, rerender } from "@app/controller";
-import { loadState, initUnloadWarning, scheduleSave } from "@app/persistence";
+import { loadState, initUnloadWarning, scheduleSave, saveStateSync } from "@app/persistence";
 import { historyInit } from "@app/history";
 import { state } from "@app/state";
 
@@ -110,14 +110,54 @@ initFitObserver(
 );
 
 /* ---------- Global listeners (HMR-safe) ---------- */
+const resolveLoadedPdf = () => {
+  if (!state.loadedPdfData) {
+    alert("Open a PDF first.");
+    return null;
+  }
+  return state.loadedPdfData;
+};
+
+const resolveFileName = () => {
+  const orig = state.originalFileName || safeGet(LS_KEYS.lastName);
+  return makeSaveName(orig);
+};
+
 attachGlobalListeners({
   onRequestImage: () => toolbarHandlers.onPickImage?.(),
   onDownloadRequested: async () => {
-    if (!state.loadedPdfData) { alert("Open a PDF first."); return; }
-    const orig = state.originalFileName || safeGet(LS_KEYS.lastName);
-    const saveAs = makeSaveName(orig);
+    const data = resolveLoadedPdf();
+    if (!data) return;
+    const saveAs = resolveFileName();
     const { downloadAnnotatedPdf } = await import("@pdf/exportAnnotated");
-    downloadAnnotatedPdf(state.loadedPdfData, saveAs);
+    downloadAnnotatedPdf(data, saveAs);
+  },
+  onPrintRequested: async () => {
+    const data = resolveLoadedPdf();
+    if (!data) return;
+    const { printAnnotatedPdf } = await import("@pdf/exportAnnotated");
+    await printAnnotatedPdf(data);
+  },
+  onShareRequested: async () => {
+    const data = resolveLoadedPdf();
+    if (!data) return;
+    const saveAs = resolveFileName();
+    const { shareAnnotatedPdf } = await import("@pdf/exportAnnotated");
+    await shareAnnotatedPdf(data, saveAs);
+  },
+  onSaveLocalRequested: async () => {
+    await saveStateSync();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("annotator:notify", {
+          detail: {
+            level: "info",
+            message: "Annotations saved locally.",
+          },
+        })
+      );
+    }
+    console.info("[app] Annotations saved locally.");
   },
   updateRenderConfig,
   getRenderPrefs,
