@@ -25,19 +25,59 @@
     <main>
       <div class="page-shell">
         <div class="viewer-header">
-          <h1>PDF Viewer</h1>
-          <button
-            id="btnDownloadAnnotated"
-            type="button"
-            class="viewer-download-btn"
-            aria-label="Download PDF with annotations"
-            title="Download PDF with annotations"
-          >
-            <span class="viewer-download-btn__icon" aria-hidden="true">
-              <img src="/src/assets/icons/download.svg" alt="" />
-            </span>
-            <span class="viewer-download-btn__label">Download</span>
-          </button>
+          <div class="viewer-header__inner">
+            <h1 class="viewer-header__title">PDF Viewer</h1>
+            <div class="viewer-actions" role="group" aria-label="Document actions">
+              <button
+                id="btnDownloadAnnotated"
+                type="button"
+                class="viewer-action-btn viewer-action-btn--primary"
+                aria-label="Download PDF with annotations"
+                title="Download PDF with annotations"
+              >
+                <span class="viewer-action-btn__icon" aria-hidden="true">
+                  <img src="/src/assets/icons/download.svg" alt="" />
+                </span>
+                <span class="viewer-action-btn__label">Download</span>
+              </button>
+              <button
+                id="btnPrintAnnotated"
+                type="button"
+                class="viewer-action-btn viewer-action-btn--secondary"
+                aria-label="Print PDF with annotations"
+                title="Print PDF with annotations"
+              >
+                <span class="viewer-action-btn__icon" aria-hidden="true">
+                  <img src="/src/assets/icons/print.svg" alt="" />
+                </span>
+                <span class="viewer-action-btn__label">Print</span>
+              </button>
+              <button
+                id="btnShareAnnotated"
+                type="button"
+                class="viewer-action-btn viewer-action-btn--secondary"
+                aria-label="Share PDF with annotations"
+                title="Share PDF with annotations"
+              >
+                <span class="viewer-action-btn__icon" aria-hidden="true">
+                  <img src="/src/assets/icons/share.svg" alt="" />
+                </span>
+                <span class="viewer-action-btn__label">Share</span>
+              </button>
+              <button
+                id="btnSaveLocalAnnotated"
+                type="button"
+                class="viewer-action-btn viewer-action-btn--secondary"
+                aria-label="Save annotations locally"
+                title="Save annotations locally"
+              >
+                <span class="viewer-action-btn__icon" aria-hidden="true">
+                  <img src="/src/assets/icons/save.svg" alt="" />
+                </span>
+                <span class="viewer-action-btn__label">Save</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Toolbar: start hidden but space-reserved to avoid CLS -->
