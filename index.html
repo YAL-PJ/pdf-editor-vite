@@ -23,62 +23,89 @@
   </head>
   <body>
     <main>
-      <div class="viewer-header">
-        <h1>PDF Viewer</h1>
-        <button id="btnDownloadAnnotated" type="button" class="viewer-download-btn" aria-label="Download PDF with annotations" title="Download PDF with annotations">
-          <span class="viewer-download-btn__icon" aria-hidden="true">
-            <img src="/src/assets/icons/download.svg" alt="" />
-          </span>
-          <span class="viewer-download-btn__label">Download</span>
-        </button>
+      <div class="page-shell">
+        <div class="viewer-header">
+          <h1>PDF Viewer</h1>
+          <button
+            id="btnDownloadAnnotated"
+            type="button"
+            class="viewer-download-btn"
+            aria-label="Download PDF with annotations"
+            title="Download PDF with annotations"
+          >
+            <span class="viewer-download-btn__icon" aria-hidden="true">
+              <img src="/src/assets/icons/download.svg" alt="" />
+            </span>
+            <span class="viewer-download-btn__label">Download</span>
+          </button>
+        </div>
 
-      </div>
+        <!-- Toolbar: start hidden but space-reserved to avoid CLS -->
+        <div class="toolbar-row">
+          <div id="toolbar" class="hydrating" role="toolbar" aria-label="Annotation toolbar"></div>
+          <div id="historyControls" class="history-controls-shell" aria-label="History controls"></div>
+        </div>
 
-      <!-- Toolbar: start hidden but space-reserved to avoid CLS -->
-      <div class="toolbar-row">
-        <div id="toolbar" class="hydrating" role="toolbar" aria-label="Annotation toolbar"></div>
-        <div id="historyControls" class="history-controls-shell" aria-label="History controls"></div>
-      </div>
 
-      <div id="navControls" class="nav-floating" aria-label="Page navigation and zoom"></div>
-
-      <!-- Viewer area -->
-      <div class="viewer-scroll">
-        <div class="viewer-stage">
-          <div class="file-input-panel">
-            <input
-              type="file"
-              id="fileInput"
-              class="file-input-native"
-              accept="application/pdf"
-              aria-describedby="fileInputHint"
-            />
-            <label
-              for="fileInput"
-              class="file-input-button"
-              role="button"
-              tabindex="0"
-            >
-              <span class="file-input-button__icon" aria-hidden="true">&#128194;</span>
-              <span>Select PDF</span>
-            </label>
-            <p id="fileInputHint" class="file-input-hint">or drag & drop a PDF onto the page below</p>
-          </div>
-          <div id="viewer" class="placeholder">
-            <div class="drop-overlay" aria-hidden="true">
-              <div class="drop-overlay__icon">&#10515;</div>
-              <div class="drop-overlay__text">Drag & drop a PDF here</div>
+        <div id="navControls" class="nav-floating" aria-label="Page navigation and zoom"></div>
+        <!-- Viewer area -->
+        <div class="viewer-scroll">
+          <div class="viewer-stage">
+            <div class="file-input-panel">
+              <input type="file" id="fileInput" accept="application/pdf" />
+              <label class="file-input-button" for="fileInput">
+                <span class="file-input-button__icon" aria-hidden="true">&#128194;</span>
+                <span>Select PDF</span>
+              </label>
+              <p class="file-input-hint">or drag & drop a PDF onto the page below</p>
             </div>
-            <canvas id="pdfCanvas" role="img" aria-label="PDF page canvas"></canvas>
-            <div id="annoLayer"></div>
+            <div id="viewer" class="placeholder">
+              <div class="drop-overlay" aria-hidden="true">
+                <div class="drop-overlay__icon">&#10515;</div>
+                <div class="drop-overlay__text">Drag & drop a PDF here</div>
+              </div>
+              <canvas id="pdfCanvas" role="img" aria-label="PDF page canvas"></canvas>
+              <div id="annoLayer"></div>
+            </div>
           </div>
         </div>
+
+        <noscript>This app requires JavaScript enabled.</noscript>
+      </div>
+    </main>
+
+    <footer class="site-footer" aria-label="Site footer">
+      <div class="site-footer__inner">
+        <section class="site-footer__section" aria-labelledby="footer-contact">
+          <h2 id="footer-contact" class="site-footer__title">Contact</h2>
+          <ul class="site-footer__list">
+            <li>
+              <a href="mailto:hello@example.com">hello@example.com</a>
+            </li>
+            <li>
+              <a href="tel:+12345678900">+1 (234) 567-8900</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="site-footer__section" aria-labelledby="footer-location">
+          <h2 id="footer-location" class="site-footer__title">Studio</h2>
+          <p class="site-footer__text">123 Creative Avenue<br />Suite 45<br />Portland, OR</p>
+          <p class="site-footer__text">Open Monday–Friday · 9am – 5pm</p>
+        </section>
+
+        <section class="site-footer__section" aria-labelledby="footer-links">
+          <h2 id="footer-links" class="site-footer__title">Stay connected</h2>
+          <ul class="site-footer__list">
+            <li><a href="#">LinkedIn</a></li>
+            <li><a href="#">Dribbble</a></li>
+            <li><a href="#">Behance</a></li>
+          </ul>
+        </section>
       </div>
 
-
-
-      <noscript>This app requires JavaScript enabled.</noscript>
-    </main>
+      <p class="site-footer__note">© 2024 Example Studio. All rights reserved.</p>
+    </footer>
 
     <!-- Vite entry -->
     <script type="module" src="/src/main.js"></script>
