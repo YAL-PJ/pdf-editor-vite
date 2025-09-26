@@ -32,6 +32,8 @@ export function initPanScroll() {
     const container = scroller();
     if (!container) return;
 
+    const scrollTarget = document.scrollingElement || document.documentElement || container;
+
     // Only left button, only when no tool is active (select mode)
     if (e.button !== 0) return;
     if (state.tool) return;
@@ -40,23 +42,26 @@ export function initPanScroll() {
     // Affordance + setup
     container.classList.add('panning');
     try { document.getElementById('annoLayer')?.classList.add('panning'); } catch {}
-    container.style.scrollBehavior = 'auto'; // avoid smooth scroll inertia during drag
+
+    const previousBodyScrollBehavior = scrollTarget.style.scrollBehavior || '';
+    const previousContainerScrollBehavior = container.style.scrollBehavior || '';
+    scrollTarget.style.scrollBehavior = 'auto';
+    container.style.scrollBehavior = 'auto';
 
     const pid = e.pointerId;
     const startX = e.clientX;
     const startY = e.clientY;
-    const startL = container.scrollLeft;
+    const startL = scrollTarget.scrollLeft;
     const startT = container.scrollTop;
 
-    // capture to keep receiving moves even if cursor leaves container
     container.setPointerCapture?.(pid);
 
     const onMove = (ev) => {
       if (ev.pointerId !== pid) return;
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
-      container.scrollLeft = startL - dx;
-      container.scrollTop  = startT - dy;
+      scrollTarget.scrollLeft = startL - dx;
+      container.scrollTop = startT - dy;
       ev.preventDefault();
     };
 
@@ -64,7 +69,8 @@ export function initPanScroll() {
       try { container.releasePointerCapture?.(pid); } catch {}
       container.classList.remove('panning');
       try { document.getElementById('annoLayer')?.classList.remove('panning'); } catch {}
-      container.style.scrollBehavior = '';
+      scrollTarget.style.scrollBehavior = previousBodyScrollBehavior;
+      container.style.scrollBehavior = previousContainerScrollBehavior;
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onCancel);
@@ -77,7 +83,6 @@ export function initPanScroll() {
     window.addEventListener('pointerup', onUp, { passive: true });
     window.addEventListener('pointercancel', onCancel, { passive: true });
   };
-
   const installIfReady = () => {
     const container = scroller();
     if (!container) return false;

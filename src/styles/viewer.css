@@ -475,35 +475,41 @@
 
 /* Reserve stable area ONLY when no doc is loaded */
 #viewer.placeholder {
-  min-height: 480px;
+  width: min(
+    clamp(420px, 72vw, 880px),
+    max(320px, calc((100vh - 200px) * 612 / 792))
+  );
+  min-height: clamp(320px, 60vh, 640px);
+  max-height: calc(100vh - 200px);
   aspect-ratio: 612 / 792;     /* US Letter aspect ratio */
+  margin: 0 auto;
 }
+
 
 /* Ensure the inner canvas also reserves space during placeholder state */
 #viewer.placeholder #pdfCanvas {
   width: 100%;
-  height: auto;
-  min-height: 480px;           /* match placeholder min-height */
-  aspect-ratio: inherit;       /* keeps same ratio as #viewer */
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: inherit;
   display: block;
 }
 
+
 .viewer-scroll {
-  /* Scroll only when content actually exceeds the cap */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
   overflow-y: auto;
-  overflow-x: auto;
-
-  /* Keep nav pill fully visible when sticky */
-  padding-bottom: 140px;
-  scroll-padding-bottom: 140px;
-
-  /* Let container grow with content; cap when too tall */
-  max-height: calc(100dvh - 200px);
-  min-height: 480px;
-
-  /* Prevent layout jiggle when scrollbar appears */
+  overflow-x: visible;
+  padding-bottom: clamp(96px, 12vh, 160px);
+  scroll-padding-bottom: clamp(96px, 12vh, 160px);
   scrollbar-gutter: stable both-edges;
+  max-height: calc(100vh - 200px);
 }
+
+
+
 
 
 #pdfCanvas {
