@@ -128,18 +128,28 @@ export function setupFileInput(onFileSelected) {
     if (!isReadyForDrop()) return;
     e.preventDefault();
     setDragState(false);
-    const file = e.dataTransfer?.files?.[0];
-    if (!file) return;
-    await processFile(file);
-    resetInput();
-  });
+
+    const file = event.dataTransfer?.files?.[0];
+    if (file) {
+      void handleFile(file);
+    }
+  };
+
+  ["dragenter", "dragover"].forEach((type) =>
+    viewer.addEventListener(type, handleDragOver)
+  );
+  ["dragleave", "dragend"].forEach((type) =>
+    viewer.addEventListener(type, handleDragLeave)
+  );
+  viewer.addEventListener("drop", handleDrop);
+
 
   if (filePanel) {
     ["dragenter", "dragover"].forEach((type) =>
-      filePanel.addEventListener(type, handleDragOver),
+      filePanel.addEventListener(type, handleDragOver)
     );
     ["dragleave", "dragend"].forEach((type) =>
-      filePanel.addEventListener(type, handleDragLeave),
+      filePanel.addEventListener(type, handleDragLeave)
     );
     filePanel.addEventListener("drop", handleDrop);
   }
