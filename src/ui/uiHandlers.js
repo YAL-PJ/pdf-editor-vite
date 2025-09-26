@@ -7,6 +7,7 @@ export function setupFileInput(onFileSelected) {
   const input = document.getElementById("fileInput");
   const viewer = document.getElementById("viewer");
   const filePanel = document.querySelector(".file-input-panel");
+  const fileTriggerLabel = document.querySelector('label[for="fileInput"]');
 
   const resetInput = () => {
     if (!input) return;
@@ -40,6 +41,22 @@ export function setupFileInput(onFileSelected) {
         resetInput();
       }
     });
+
+    if (fileTriggerLabel) {
+      fileTriggerLabel.addEventListener("keydown", (e) => {
+        if (e.key !== " " && e.key !== "Enter") return;
+        e.preventDefault();
+        try {
+          if (typeof input.showPicker === "function") {
+            input.showPicker();
+          } else {
+            input.click();
+          }
+        } catch (err) {
+          console.error("Failed to open file picker from keyboard", err);
+        }
+      });
+    }
   }
 
   if (!viewer) return;
