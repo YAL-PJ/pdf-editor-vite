@@ -1,12 +1,23 @@
 /* ---------- Layout: Header & inputs ---------- */
 /* ---------- Toolbar row ---------- */
 .toolbar-row {
+  position: fixed;
+  top: var(--viewer-header-height, 0px);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: min(100%, 1200px);
+  box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
-  margin: 24px 0;
+  background: var(--bg);
+  padding: 16px clamp(16px, 5vw, 32px);
+  border-bottom: 1px solid var(--panel-border);
+  box-shadow: 0 8px 24px -20px rgba(27, 18, 25, 0.45);
+  z-index: 105;
 }
 
 .toolbar-row #toolbar {
@@ -97,9 +108,9 @@
 .nav-floating {
   position: fixed;
   left: 50%;
-  bottom: 32px;
+  bottom: calc(var(--fixed-bottom-gap, 0px) + 32px);
   transform: translateX(-50%);
-  z-index: 5;
+  z-index: 120;
   pointer-events: none;
 }
 
@@ -253,11 +264,16 @@
 
 .viewer-header {
   background: linear-gradient(135deg, #fbe5ef 0%, #fff4f9 100%);
-  margin: 0 0 32px;
   padding: clamp(20px, 4vw, 36px) clamp(24px, 5vw, 48px);
   border-top: 1px solid rgba(247, 196, 212, 0.6);
   border-bottom: 1px solid rgba(247, 196, 212, 0.6);
   box-shadow: 0 6px 18px -14px rgba(109, 61, 84, 0.45);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 110;
+  margin: 0;
 }
 
 .viewer-header__inner {
@@ -500,12 +516,9 @@
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
-  overflow-y: auto;
-  overflow-x: visible;
-  padding-bottom: clamp(96px, 12vh, 160px);
-  scroll-padding-bottom: clamp(96px, 12vh, 160px);
-  scrollbar-gutter: stable both-edges;
-  max-height: calc(100vh - 200px);
+  overflow: visible;
+  padding-bottom: calc(clamp(96px, 12vh, 160px) + var(--fixed-bottom-gap, 0px));
+  scroll-padding-bottom: calc(clamp(96px, 12vh, 160px) + var(--fixed-bottom-gap, 0px));
 }
 
 
@@ -564,7 +577,7 @@
   border: 1px solid var(--panel-border);
   border-radius: 12px;
   background: var(--panel);
-  margin: 12px 0;
+  margin: 0;
   min-height: 48px;            /* prevents shifts while toolbar hydrates */
 }
 

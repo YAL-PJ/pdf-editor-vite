@@ -10,8 +10,9 @@ import {
   setOverlayCursor,
   syncOverlayToCanvas,
   clearOverlay,
+  setPannable,
 } from "@ui/overlay";
-import { setPannable } from "@ui/overlay";
+import { updateLayoutOffsets } from "@app/layoutOffsets";
 import { saveState, hasDataToLose, clearSavedState } from "./persistence";
 import { undo, redo, historyInit, jumpToHistory } from "@app/history";
 import { downloadAnnotatedPdf } from "@pdf/exportAnnotated";
@@ -44,6 +45,9 @@ const escapeHtml = (s = "") =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const MIN_SCALE = 0.3;
+const MAX_SCALE = 3.0;
+const DEFAULT_ZOOM_STEP = 0.1;
 
 const parsePageInput = (raw) => {
   if (raw == null) return null;
@@ -62,6 +66,24 @@ const parseZoomPercent = (raw) => {
   const num = Number.parseFloat(normalized);
   return Number.isFinite(num) ? num : null;
 };
+
+async function setScale(nextScale) {
+  const clamped = clamp(nextScale, MIN_SCALE, MAX_SCALE);
+  if (Math.abs(clamped - state.scale) < 0.0001) {
+    return state.scale;
+  }
+  state.scale = clamped;
+  await rerender();
+  return state.scale;
+}
+
+async function applyZoomDelta(delta) {
+  if (!Number.isFinite(delta) || delta === 0) {
+    return state.scale;
+  }
+  const next = state.scale + delta;
+  return setScale(next);
+}
 
 /* ---------- Minimal, accessible switch dialog ---------- */
 function showSwitchDialog(nextName) {
@@ -231,6 +253,8 @@ export async function rerender() {
       zoomInput.value = zoomText;
       zoomInput.dataset.current = zoomText;
     }
+
+    updateLayoutOffsets();
   } finally {
     setToolbarEnabled(true);
   }
@@ -332,17 +356,15 @@ export const handlers = {
     state.pageNum += 1;
     await rerender();
   },
-  onZoomIn: async () => {
+  onZoomIn: async (step = DEFAULT_ZOOM_STEP) => {
     if (!state.pdfDoc) return;
     if (import.meta?.env?.DEV) console.count("zoomIn");  // debug counter
-    state.scale = Math.min(state.scale + 0.1, 3.0);
-    await rerender();
+    await applyZoomDelta(Math.abs(step));
   },
-  onZoomOut: async () => {
+  onZoomOut: async (step = DEFAULT_ZOOM_STEP) => {
     if (!state.pdfDoc) return;
     if (import.meta?.env?.DEV) console.count("zoomOut"); // debug counter
-    state.scale = Math.max(state.scale - 0.1, 0.3);
-    await rerender();
+    await applyZoomDelta(-Math.abs(step));
   },
   onPageInput: async (rawValue) => {
     const current = state.pageNum || 1;
@@ -398,18 +420,11 @@ export const handlers = {
       return currentText;
     }
 
-    const clampedPercent = clamp(parsed, 30, 300);
+    const clampedPercent = clamp(parsed, MIN_SCALE * 100, MAX_SCALE * 100);
     const nextScale = clampedPercent / 100;
-    if (Math.abs(nextScale - state.scale) > 0.0001) {
-      state.scale = nextScale;
-      await rerender();
-    } else if (zoomInput) {
-      const updated = `${Math.round(state.scale * 100)}%`;
-      zoomInput.value = updated;
-      zoomInput.dataset.current = updated;
-    }
+    const applied = await setScale(nextScale);
 
-    const finalText = `${Math.round(state.scale * 100)}%`;
+    const finalText = `${Math.round(applied * 100)}%`;
     if (zoomInput) {
       zoomInput.value = finalText;
       zoomInput.dataset.current = finalText;

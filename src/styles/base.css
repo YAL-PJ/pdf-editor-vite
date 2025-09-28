@@ -2,6 +2,14 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; }
 
+:root {
+  --viewer-header-height: 140px;
+  --toolbar-row-height: 110px;
+  --footer-height: 220px;
+  --fixed-top-gap: calc(var(--viewer-header-height) + var(--toolbar-row-height));
+  --fixed-bottom-gap: var(--footer-height);
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -23,16 +31,26 @@ main {
 .page-shell {
   width: min(100%, 1200px);
   margin: 0 auto;
-  padding: 0 16px 16px;
+  padding:
+    calc(var(--fixed-top-gap) + 16px)
+    clamp(16px, 5vw, 48px)
+    calc(var(--fixed-bottom-gap) + 16px);
+  position: relative;
 }
 
 .site-footer {
-  margin-top: 48px;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin-top: 0;
   background: var(--panel);
   border-top: 1px solid var(--panel-border);
   color: var(--fg);
   padding: 32px clamp(24px, 5vw, 48px) 40px;
   width: 100%;
+  box-shadow: 0 -12px 28px -24px rgba(27, 18, 25, 0.55);
+  z-index: 100;
 }
 
 .site-footer__inner {

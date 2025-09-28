@@ -22,6 +22,8 @@ import {
 } from "@app/renderPrefs";
 import { makeSaveName, extractOriginalName } from "@app/filename";
 import { initFitObserver } from "@app/fitObserver";
+import { initLayoutOffsets } from "@app/layoutOffsets";
+import { initWheelZoom } from "@app/zoomWheel";
 import { setPannable } from "@ui/overlay";
 
 // DEV-ONLY: layout shift logger
@@ -73,6 +75,10 @@ export const AUTOSAVE_DELAY_MS = Math.max(40, Math.min(240, chooseAutosaveDelay(
 
 /* ---------- Initialize render prefs (runtime) ---------- */
 updateRenderConfig(initRenderPrefs());
+
+/* ---------- Sync layout offsets for fixed chrome ---------- */
+initLayoutOffsets();
+initWheelZoom();
 
 /* ---------- DEV mirrors (live getters, namespaced) ---------- */
 const DEV_MIRROR = !!import.meta?.env?.DEV;
