@@ -225,6 +225,25 @@
   transition: transform .15s ease, background .15s ease, color .15s ease;
 }
 
+.history-panel__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-panel__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5ch;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
 .history-panel__item button:hover:not(:disabled) {
   transform: translateY(-1px);
   background: rgba(255, 255, 255, 0.14);

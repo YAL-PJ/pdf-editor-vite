@@ -4,13 +4,15 @@ import { replaceAnn, removeAnn } from "../stateOps";
 import { makeDrag } from "../drag";
 import { scheduleSave } from "@app/persistence";
 
-const summarizeText = (value = "") => {
-  const normalized = String(value)
-    .replace(/\u00A0/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (!normalized) return "";
-  return normalized.length > 40 ? `${normalized.slice(0, 37)}…` : normalized;
+const quoteHistoryText = (value = "") => {
+  if (value == null) return "";
+  const raw = String(value);
+  if (!raw.trim()) return "";
+  try {
+    return JSON.stringify(raw);
+  } catch {
+    return JSON.stringify(raw.slice(0));
+  }
 };
 
 export function renderNote(layer, ann, pageNum, cw, ch) {
@@ -38,8 +40,8 @@ export function renderNote(layer, ann, pageNum, cw, ch) {
     layer,
     excludeAnn: ann,
     historyLabel: () => {
-      const summary = summarizeText(root._annRef?.text || "");
-      return summary ? `Move note: "${summary}"` : "Move note";
+      const snippet = quoteHistoryText(root._annRef?.text || "");
+      return snippet ? `Move note ${snippet}` : "Move note";
     },
   });
   header.addEventListener("pointerdown", (e)=>startNoteDrag(e, header), { passive: false });
@@ -48,8 +50,8 @@ export function renderNote(layer, ann, pageNum, cw, ch) {
     const prev = root._annRef.text || "";
     const next = body.textContent || "";
     if (prev !== next) {
-      const summary = summarizeText(next);
-      const label = summary ? `Update note: "${summary}"` : "Clear note";
+      const snippet = quoteHistoryText(next);
+      const label = snippet ? `Update note ${snippet}` : "Clear note";
       historyBegin(label);
       root._annRef = replaceAnn(pageNum, root._annRef, { text: next });
       scheduleSave();
@@ -57,8 +59,8 @@ export function renderNote(layer, ann, pageNum, cw, ch) {
     }
   });
   close.addEventListener("click", () => {
-    const summary = summarizeText(root._annRef?.text || "");
-    const label = summary ? `Delete note: "${summary}"` : "Delete note";
+    const snippet = quoteHistoryText(root._annRef?.text || "");
+    const label = snippet ? `Delete note ${snippet}` : "Delete note";
     historyBegin(label);
     removeAnn(pageNum, root._annRef);
     root.remove();

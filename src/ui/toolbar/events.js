@@ -1,4 +1,8 @@
-import { getHistoryTimeline, HISTORY_UPDATED_EVENT } from "@app/history";
+import {
+  getHistoryEntries,
+  getHistoryTimeline,
+  HISTORY_UPDATED_EVENT,
+} from "@app/history";
 
 let _toolbarEvtController = null;
 
@@ -34,19 +38,6 @@ const labelAliases = {
 const describeLabel = (label, fallback) => {
   if (!label) return fallback;
   return labelAliases[label] || label;
-};
-
-const buildHistoryEntries = () => {
-  const timeline = getHistoryTimeline();
-  if (!timeline) return [];
-  const entries = [];
-  timeline.past
-    .slice()
-    .reverse()
-    .forEach((entry) => entries.push({ ...entry, type: "past" }));
-  if (timeline.present) entries.push({ ...timeline.present, type: "present" });
-  timeline.future.forEach((entry) => entries.push({ ...entry, type: "future" }));
-  return entries;
 };
 
 const statusText = (type) => {
@@ -89,7 +80,7 @@ export function attachToolbarEvents(handlers = {}) {
 
   const renderHistoryPanel = () => {
     if (!historyListEl) return;
-    const entries = buildHistoryEntries();
+    const entries = getHistoryEntries();
     if (!entries.length) {
       historyListEl.innerHTML = '<li class="history-panel__empty">No history yet</li>';
       return;
@@ -103,6 +94,7 @@ export function attachToolbarEvents(handlers = {}) {
         if (time) metaParts.push(time);
         const meta = metaParts.join(" | ");
         const label = describeLabel(entry.label, `Edit ${entry.id}`);
+        const number = `#${entry.id}`;
         const title =
           entry.type === "future"
             ? "Redo to this point"
@@ -112,7 +104,10 @@ export function attachToolbarEvents(handlers = {}) {
         return `
           <li class="history-panel__item history-panel__item--${entry.type}">
             <button type="button" data-history-id="${entry.id}" data-history-type="${entry.type}" ${disabled} title="${escapeHtml(title)}">
-              <span class="history-panel__name">${escapeHtml(label)}</span>
+              <span class="history-panel__title">
+                <span class="history-panel__number" aria-hidden="true">${escapeHtml(number)}</span>
+                <span class="history-panel__name">${escapeHtml(label)}</span>
+              </span>
               <span class="history-panel__meta">${escapeHtml(meta)}</span>
             </button>
           </li>`;
