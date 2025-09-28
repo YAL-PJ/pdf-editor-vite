@@ -7,13 +7,15 @@ import { scheduleSave } from "@app/persistence";
 import { collectGuides, ensureGuideElems, magneticSnapResize } from "../guides";
 import { makeDrag } from "../drag";
 
-const summarizeText = (value = "") => {
-  const normalized = String(value)
-    .replace(/\u00A0/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (!normalized) return "";
-  return normalized.length > 50 ? `${normalized.slice(0, 47)}…` : normalized;
+const quoteHistoryText = (value = "") => {
+  if (value == null) return "";
+  const raw = String(value);
+  if (!raw.trim()) return "";
+  try {
+    return JSON.stringify(raw);
+  } catch {
+    return JSON.stringify(raw.slice(0));
+  }
 };
 
 export function renderText(layer, ann, pageNum, cw, ch) {
@@ -66,8 +68,8 @@ export function renderText(layer, ann, pageNum, cw, ch) {
     const prev = cur.text || "";
     const next = body.textContent || "";
     if (prev !== next) {
-      const summary = summarizeText(next);
-      const label = summary ? `Update text: "${summary}"` : "Clear text box";
+      const snippet = quoteHistoryText(next);
+      const label = snippet ? `Update text ${snippet}` : "Clear text box";
       historyBegin(label);
       cur = replaceAnn(pageNum, cur, { text: next });
       scheduleSave();
@@ -96,8 +98,8 @@ export function renderText(layer, ann, pageNum, cw, ch) {
     layer,
     excludeAnn: cur,
     historyLabel: () => {
-      const summary = summarizeText(cur?.text || "");
-      return summary ? `Move text: "${summary}"` : "Move text box";
+      const snippet = quoteHistoryText(cur?.text || "");
+      return snippet ? `Move text ${snippet}` : "Move text box";
     },
   });
   head.addEventListener("pointerdown", (e)=>startTextDrag(e, head), { passive: false });
@@ -160,8 +162,8 @@ export function renderText(layer, ann, pageNum, cw, ch) {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
       if (!started && (dx || dy)) {
-        const summary = summarizeText(cur?.text || "");
-        resizeLabel = summary ? `Resize text: "${summary}"` : "Resize text box";
+        const snippet = quoteHistoryText(cur?.text || "");
+        resizeLabel = snippet ? `Resize text ${snippet}` : "Resize text box";
         historyBegin(resizeLabel);
         started = true;
         document.body.style.userSelect = "none";
@@ -237,8 +239,8 @@ export function renderText(layer, ann, pageNum, cw, ch) {
   }, { passive: false });
 
   close.addEventListener("click", () => {
-    const summary = summarizeText(cur?.text || "");
-    const label = summary ? `Delete text: "${summary}"` : "Delete text box";
+    const snippet = quoteHistoryText(cur?.text || "");
+    const label = snippet ? `Delete text ${snippet}` : "Delete text box";
     historyBegin(label);
     removeAnn(pageNum, cur);
     box.remove();
