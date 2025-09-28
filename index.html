@@ -94,15 +94,30 @@
           <div class="viewer-stage">
             <div class="file-input-panel">
               <input class="file-input-native" type="file" id="fileInput" accept="application/pdf" />
-              <label class="file-input-button" for="fileInput">
-                <span class="file-input-button__icon" aria-hidden="true">&#128194;</span>
-                <span>Select PDF</span>
-              </label>
+              <div class="file-input-actions">
+                <label class="file-input-button" for="fileInput">
+                  <span class="file-input-button__icon" aria-hidden="true">&#128194;</span>
+                  <span>Select PDF</span>
+                </label>
+                <button
+                  id="btnClearDocument"
+                  type="button"
+                  class="file-input-clear"
+                  aria-label="Remove the current PDF and return to an empty canvas"
+                  title="Remove the current PDF"
+                  disabled
+                >
+                  <span class="file-input-clear__icon" aria-hidden="true">
+                    <img src="/src/assets/icons/close.svg" alt="" />
+                  </span>
+                  <span class="file-input-clear__label">Remove</span>
+                </button>
+              </div>
             </div>
             <div id="viewer" class="placeholder">
               <div class="drop-overlay" aria-hidden="true">
                 <div class="drop-overlay__icon">&#10515;</div>
-                <div class="drop-overlay__text">Drag & drop a PDF here</div>
+                <div class="drop-overlay__text">Click to select or drag & drop a PDF</div>
               </div>
               <canvas id="pdfCanvas" role="img" aria-label="PDF page canvas"></canvas>
               <div id="annoLayer"></div>

@@ -97,6 +97,10 @@ export function setupFileInput(onFileSelected) {
     return;
   }
 
+  if (!viewer.hasAttribute("tabindex")) {
+    viewer.setAttribute("tabindex", "0");
+  }
+
   const setDragState = (active) => {
     viewer.classList.toggle("is-dragover", Boolean(active));
   };
@@ -148,6 +152,58 @@ export function setupFileInput(onFileSelected) {
     viewer.addEventListener(type, handleDragLeave)
   );
   viewer.addEventListener("drop", handleDrop);
+
+  let lastPointerActivation = 0;
+
+  const handlePlaceholderActivate = (event) => {
+    if (!isReadyForDrop()) return;
+
+    if (event.type === "keydown") {
+      const key = event.key;
+      if (key !== "Enter" && key !== " ") return;
+      event.preventDefault();
+      openPicker();
+      return;
+    }
+
+    const isPointerEvent = event.type === "pointerdown" || event.type === "click";
+    if (!isPointerEvent) return;
+
+    const primaryButton = event.button === 0 || event.button === undefined;
+    if (!primaryButton) return;
+
+    // Avoid double-triggering when pointerdown already handled.
+    if (event.type === "click" && lastPointerActivation) {
+      const elapsed = performance.now() - lastPointerActivation;
+      if (elapsed < 350) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.type === "pointerdown") {
+      lastPointerActivation = performance.now();
+    }
+
+    openPicker();
+  };
+
+  const activationTargets = [
+    viewer,
+    document.getElementById("pdfCanvas"),
+    document.getElementById("annoLayer"),
+  ].filter(Boolean);
+
+  activationTargets.forEach((el) => {
+    el.addEventListener("pointerdown", handlePlaceholderActivate, true);
+    el.addEventListener("click", handlePlaceholderActivate, true);
+  });
+
+  viewer.addEventListener("keydown", handlePlaceholderActivate, true);
 
   if (filePanel) {
     ["dragenter", "dragover"].forEach((type) =>

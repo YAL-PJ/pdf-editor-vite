@@ -47,6 +47,12 @@ export async function renderPage(pdfDoc, pageNum = 1, scale = 1.0) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.imageSmoothingEnabled = true;
 
+  // Prime canvas with a white background to prevent initial black flash.
+  ctx.save();
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+
   // If a previous render is in flight, cancel it and wait for cleanup
   if (activeTask) {
     try {

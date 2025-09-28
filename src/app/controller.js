@@ -27,6 +27,18 @@ let _rerenderQueued = false; // flag if a rerender was requested while busy
 const getFileInputEl = () => document.getElementById("fileInput");
 const getViewerEl    = () => document.getElementById("viewer");
 const getCanvasEl    = () => document.getElementById("pdfCanvas");
+const CLEAR_BUTTON_ID = "btnClearDocument";
+
+const setClearButtonEnabled = (enabled) => {
+  const btn = document.getElementById(CLEAR_BUTTON_ID);
+  if (!btn) return;
+  btn.disabled = !enabled;
+  if (enabled) {
+    btn.removeAttribute("aria-disabled");
+  } else {
+    btn.setAttribute("aria-disabled", "true");
+  }
+};
 
 const makeDocId = (file) =>
   file ? `${file.name}|${file.size}|${file.lastModified || 0}` : null;
@@ -134,12 +146,27 @@ export async function resetDocumentState() {
   const ctx = canvas?.getContext?.("2d");
   if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  if (canvas) {
+    canvas.width = 0;
+    canvas.height = 0;
+    canvas.style.width = "";
+    canvas.style.height = "";
+    canvas.style.visibility = "hidden";
+    canvas.style.pointerEvents = "none";
+  }
+
   clearOverlay?.();
+
+  try {
+    const input = getFileInputEl();
+    if (input) input.value = "";
+  } catch {}
 
   state.pdfDoc = null;
   state.loadedPdfData = null;
   state.pageNum = 1;
   state.scale = 1.0;
+  state.tool = null;
   state.annotations = {};
   try { state.annotationsVersion = 0; } catch {}
   state.viewports = {};
@@ -165,6 +192,11 @@ export async function resetDocumentState() {
       zoomInput.value = "100%";
       zoomInput.dataset.current = "100%";
     }
+
+    const pageCount = ui.pageCountEl?.();
+    if (pageCount) {
+      pageCount.textContent = "0";
+    }
   } catch {}
 
   // Restore "placeholder" so CSS reserves aspect-only space again
@@ -173,6 +205,7 @@ export async function resetDocumentState() {
 
   await clearSavedState();
   historyInit();
+  setClearButtonEnabled(false);
 }
 
 /* ---------- Render current page (CLS-safe + crisp + zoom-preserving) ---------- */
@@ -320,9 +353,15 @@ export async function openFile(file) {
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
 
   await rerender();
+  const canvas = getCanvasEl();
+  if (canvas) {
+    canvas.style.visibility = "visible";
+    canvas.style.pointerEvents = "auto";
+  }
   getViewerEl()?.classList.remove("placeholder"); // remove after first layout-stable render
   historyInit();
   saveState();
+  setClearButtonEnabled(true);
 }
 
 /* ---------- Restore PDF ---------- */
@@ -340,8 +379,14 @@ export async function restoreFile() {
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
 
   await rerender();
+  const canvas = getCanvasEl();
+  if (canvas) {
+    canvas.style.visibility = "visible";
+    canvas.style.pointerEvents = "auto";
+  }
   getViewerEl()?.classList.remove("placeholder"); // remove after first layout-stable render
   historyInit();
+  setClearButtonEnabled(true);
 }
 
 /* ---------- Toolbar handlers ---------- */
@@ -466,5 +511,18 @@ export const handlers = {
     if (!Number.isFinite(target)) return;
     if (jumpToHistory(target)) await rerender();
   },
-};
+  onClearDocument: async () => {
+    const hasDocument = Boolean(state.pdfDoc || state.loadedPdfData);
+    if (!hasDocument) {
+      alert("There is no PDF to remove.");
+      return;
+    }
 
+    const confirmed = window.confirm(
+      "Remove the current PDF? Unsaved changes will be lost."
+    );
+    if (!confirmed) return;
+
+    await resetDocumentState();
+  },
+};

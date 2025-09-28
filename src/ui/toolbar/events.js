@@ -223,6 +223,7 @@ export function attachToolbarEvents(handlers = {}) {
         "onSaveLocalAnnotated",
         "Save annotations locally"
       ),
+    btnClearDocument: () => safe(handlers.onClearDocument)(),
   };
 
   toolbarEl.addEventListener(
@@ -454,6 +455,7 @@ export function attachToolbarEvents(handlers = {}) {
     "btnPrintAnnotated",
     "btnShareAnnotated",
     "btnSaveLocalAnnotated",
+    "btnClearDocument",
   ];
 
   headerActionButtons.forEach((id) => {
