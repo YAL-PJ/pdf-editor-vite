@@ -12,10 +12,14 @@ import {
   clearOverlay,
   setPannable,
 } from "@ui/overlay";
+import {
+  renderThumbnails,
+  setActiveThumbnail,
+  clearThumbnails,
+} from "@ui/thumbnails";
 import { updateLayoutOffsets } from "@app/layoutOffsets";
 import { saveState, hasDataToLose, clearSavedState } from "./persistence";
 import { undo, redo, historyInit, jumpToHistory } from "@app/history";
-import { downloadAnnotatedPdf } from "@pdf/exportAnnotated";
 
 import "../styles/switch-dialog.css";
 
@@ -157,6 +161,8 @@ export async function resetDocumentState() {
 
   clearOverlay?.();
 
+  clearThumbnails();
+
   try {
     const input = getFileInputEl();
     if (input) input.value = "";
@@ -265,6 +271,7 @@ export async function rerender() {
 
     syncOverlayToCanvas();
     renderAnnotationsForPage(state.pageNum, vp);
+    setActiveThumbnail(state.pageNum);
 
     const pageInput = ui.pageNumEl();
     if (pageInput) {
@@ -322,6 +329,7 @@ export async function openFile(file) {
         if (state.loadedPdfData) {
           const orig = state.originalFileName || localStorage.getItem("last_pdf_name") || "document.pdf";
           const saveAs = makeSaveName(orig);
+          const { downloadAnnotatedPdf } = await import("@pdf/exportAnnotated");
           await downloadAnnotatedPdf(state.loadedPdfData, saveAs);
         }
       } catch (e) {
@@ -352,6 +360,8 @@ export async function openFile(file) {
   getViewerEl()?.classList.remove("is-dragover");
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
 
+  void renderThumbnails(state.pdfDoc, { currentPage: state.pageNum });
+
   await rerender();
   const canvas = getCanvasEl();
   if (canvas) {
@@ -377,6 +387,8 @@ export async function restoreFile() {
   state.pdfDoc = doc;
   state.currentDocId = makeDocId(restoredFile);
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
+
+  void renderThumbnails(state.pdfDoc, { currentPage: state.pageNum });
 
   await rerender();
   const canvas = getCanvasEl();

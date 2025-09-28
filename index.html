@@ -114,13 +114,47 @@
                 </button>
               </div>
             </div>
-            <div id="viewer" class="placeholder">
-              <div class="drop-overlay" aria-hidden="true">
-                <div class="drop-overlay__icon">&#10515;</div>
-                <div class="drop-overlay__text">Click to select or drag & drop a PDF</div>
+            <div class="viewer-layout">
+              <aside
+                id="thumbnailPane"
+                class="thumbnail-pane"
+                aria-label="Page thumbnails"
+                hidden
+              >
+                <div class="thumbnail-pane__header">
+                  <span class="thumbnail-pane__title">Pages</span>
+                  <button
+                    id="thumbnailPaneToggle"
+                    type="button"
+                    class="thumbnail-pane__toggle"
+                    aria-expanded="true"
+                    aria-controls="thumbnailList"
+                  >
+                    Hide
+                  </button>
+                </div>
+                <div id="thumbnailList" class="thumbnail-list" role="list"></div>
+              </aside>
+              <button
+                id="thumbnailPaneShow"
+                class="thumbnail-pane__show"
+                type="button"
+                hidden
+                aria-expanded="false"
+                aria-controls="thumbnailList"
+              >
+                Show thumbnails
+              </button>
+              <div class="viewer-host">
+                <div id="viewer" class="placeholder">
+                  <div class="drop-overlay" aria-hidden="true">
+                    <div class="drop-overlay__icon">&#10515;</div>
+                    <div class="drop-overlay__text">Click to select or drag & drop a PDF</div>
+                  </div>
+                  <canvas id="pdfCanvas" role="img" aria-label="PDF page canvas"></canvas>
+                  <div id="annoLayer"></div>
+                </div>
               </div>
-              <canvas id="pdfCanvas" role="img" aria-label="PDF page canvas"></canvas>
-              <div id="annoLayer"></div>
             </div>
           </div>
         </div>

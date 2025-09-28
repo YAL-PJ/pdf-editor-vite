@@ -4,6 +4,7 @@
 import { createToolbar, setToolbarEnabled } from "@ui/toolbar";
 import { setupFileInput } from "@ui/uiHandlers";
 import { initTextDrag, initImageDrag, initHighlightDrag, initNotePlacement, initPanScroll } from "@ui/overlay";
+import { initThumbnailPane } from "@ui/thumbnails";
 import { wrapHandler } from "@app/handlerWrapper";
 import { scheduleSave } from "@app/persistence";
 import { state } from "@app/state";
@@ -34,6 +35,15 @@ export function bootstrapUI({ handlers, openFile, extractOriginalName, autosaveD
   const toolbarHandlers = { ...instrumentHandlers(handlers) };
   createToolbar("toolbar", toolbarHandlers);
   setToolbarEnabled(false);
+
+  initThumbnailPane({
+    onPageSelect: (pageNum) => {
+      const handler = toolbarHandlers.onPageInput;
+      if (typeof handler === "function") {
+        handler(pageNum);
+      }
+    },
+  });
 
   // Reveal toolbar without changing layout (CLS-safe)
   const tb = document.getElementById("toolbar");
