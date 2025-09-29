@@ -1,4 +1,5 @@
 /* entry that Vite imports */
+@import "pdfjs-dist/web/pdf_viewer.css";
 @import "./styles/tokens.css";
 @import "./styles/base.css";
 @import "./styles/viewer.css";

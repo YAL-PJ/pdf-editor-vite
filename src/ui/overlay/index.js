@@ -1,7 +1,12 @@
 // Barrel exports for overlay utilities + tools
 
 // From layout
-export { setOverlayCursor, clearOverlay, resizeOverlayToCanvas } from "./layout";
+export {
+  setOverlayCursor,
+  clearOverlay,
+  resizeOverlayToCanvas,
+  setOverlayPointerEvents,
+} from "./layout";
 
 // Tool initializers
 export { initHighlightDrag } from "./highlight";

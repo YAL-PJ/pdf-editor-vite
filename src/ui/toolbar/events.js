@@ -179,6 +179,7 @@ export function attachToolbarEvents(handlers = {}) {
     btnSelect: () => safe(handlers.onToolChange)(null),
     toolHighlight: () => safe(handlers.onToolChange)("highlight"),
     btnHighlight: () => safe(handlers.onToolChange)("highlight"),
+    toolTextHighlight: () => safe(handlers.onToolChange)("text-highlight"),
     toolNote: () => safe(handlers.onToolChange)("note"),
     btnNote: () => safe(handlers.onToolChange)("note"),
     toolText: () => safe(handlers.onToolChange)("text"),
@@ -219,6 +220,9 @@ export function attachToolbarEvents(handlers = {}) {
         "Save annotations locally"
       ),
     btnClearDocument: () => safe(handlers.onClearDocument)(),
+    searchPrev: () => safe(handlers.onSearchPrev)(),
+    searchNext: () => safe(handlers.onSearchNext)(),
+    searchClear: () => safe(handlers.onSearchClear)(),
   };
 
   toolbarEl.addEventListener(
@@ -361,6 +365,42 @@ export function attachToolbarEvents(handlers = {}) {
       "blur",
       () => {
         commitZoom();
+      },
+      { signal }
+    );
+  }
+
+  const searchInput = q("searchInput");
+  if (searchInput) {
+    const commitSearch = () => {
+      const handler = safe(handlers.onSearchQuery);
+      const result = handler(searchInput.value);
+      if (result && typeof result.then === "function") {
+        result.catch(() => {});
+      }
+    };
+
+    searchInput.addEventListener(
+      "input",
+      () => commitSearch(),
+      { signal }
+    );
+
+    searchInput.addEventListener(
+      "keydown",
+      (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const result = safe(handlers.onSearchNext)();
+          if (result && typeof result.then === "function") {
+            result.catch(() => {});
+          }
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          searchInput.value = "";
+          commitSearch();
+          safe(handlers.onSearchClear)();
+        }
       },
       { signal }
     );

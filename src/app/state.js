@@ -14,7 +14,15 @@ export const state = {
   tool: null,
 
   // { [pageNum: number]: Annotation[] }
-  // highlight: { type:'highlight', rect:[x,y,w,h] }
+  // highlight: {
+  //   type:'highlight',
+  //   rect:[x,y,w,h],
+  //   rects?: [ [x,y,w,h], ... ],
+  //   anchors?: { page:number|null, start:{ spanId:string|null, charOffset:number, charStart:number, charEnd:number, localOffset:number }, end:{ ... } },
+  //   source?: 'freeform'|'text',
+  //   text?: string,
+  //   createdAt?: number
+  // }
   // note:      { type:'note',      pos:[x,y], text:string }
   // text:      { type:'text',      rect:[x,y,w,h], text:string, fontSize:number, color:string, align:'left'|'center'|'right' }
   // image:     { type:'image',     rect:[x,y,w,h], src:string }  // src is a dataURL

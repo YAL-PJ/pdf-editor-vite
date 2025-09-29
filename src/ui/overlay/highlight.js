@@ -104,7 +104,14 @@ export function initHighlightDrag() {
         const rectN = normalizeRect(x, y, w, h, cw, ch);
         const label = `Add highlight (page ${state.pageNum})`;
         historyBegin(label);
-        bucket.push({ type: "highlight", rect: rectN });
+        bucket.push({
+          type: "highlight",
+          rect: rectN,
+          rects: [rectN],
+          source: "freeform",
+          anchors: null,
+          createdAt: Date.now(),
+        });
         markAnnotationsChanged();
         saveState();
         historyCommit(label);

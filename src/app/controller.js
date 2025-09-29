@@ -11,6 +11,7 @@ import {
   syncOverlayToCanvas,
   clearOverlay,
   setPannable,
+  setOverlayPointerEvents,
 } from "@ui/overlay";
 import {
   renderThumbnails,
@@ -20,6 +21,20 @@ import {
 import { updateLayoutOffsets } from "@app/layoutOffsets";
 import { saveState, hasDataToLose, clearSavedState } from "./persistence";
 import { undo, redo, historyInit, jumpToHistory } from "@app/history";
+import { clearTextLayer, getCachedTextContent, renderTextLayer } from "@pdf/textLayer";
+import {
+  setSearchQuery,
+  stepMatch,
+  clearSearch,
+  resetSearchState,
+  notifyPageRendered as notifySearchRendered,
+} from "@app/search";
+import {
+  applyViewportToCanvas,
+  createRenderParameters,
+  measureViewport,
+} from "@pdf/pagePipeline";
+import { setTextHighlightMode } from "@app/textSelection";
 
 import "../styles/switch-dialog.css";
 
@@ -31,6 +46,7 @@ let _rerenderQueued = false; // flag if a rerender was requested while busy
 const getFileInputEl = () => document.getElementById("fileInput");
 const getViewerEl    = () => document.getElementById("viewer");
 const getCanvasEl    = () => document.getElementById("pdfCanvas");
+const getTextLayerDiv = () => document.getElementById("textLayer")?.firstElementChild || null;
 const CLEAR_BUTTON_ID = "btnClearDocument";
 
 const setClearButtonEnabled = (enabled) => {
@@ -160,8 +176,15 @@ export async function resetDocumentState() {
   }
 
   clearOverlay?.();
+  clearTextLayer();
+  resetSearchState();
+  setTextHighlightMode(false);
+  setOverlayPointerEvents(true);
 
   clearThumbnails();
+
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) searchInput.value = "";
 
   try {
     const input = getFileInputEl();
@@ -235,27 +258,22 @@ export async function rerender() {
     const container = document.querySelector(".viewer-scroll") || viewer.parentElement || viewer;
 
     // 1) Compute scale: fit-to-width * current zoom (state.scale)
-    const baseVp    = page.getViewport({ scale: 1 });
     const available = Math.max(1, container.clientWidth);
-    const fitScale  = available / baseVp.width;
-    const scale     = fitScale * state.scale;
-    const vp        = page.getViewport({ scale });
+    const geometry = measureViewport({
+      page,
+      containerWidth: available,
+      scale: state.scale,
+    });
 
-    // 2) Set CSS box size *before* rendering (prevents CLS),
-    //    then set backing store for crisp output.
-    const dpr  = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-    const cssW = Math.round(vp.width);
-    const cssH = Math.round(vp.height);
+    applyViewportToCanvas(canvas, geometry);
 
-    canvas.style.width  = `${cssW}px`;  // affects layout
-    canvas.style.height = `${cssH}px`;  // affects layout
-    canvas.width  = cssW * dpr;         // raster only
-    canvas.height = cssH * dpr;         // raster only
-
-    const ctx = canvas.getContext("2d", { alpha: false });
+    const renderParams = createRenderParameters(canvas, geometry.viewport);
+    if (!renderParams?.canvasContext) {
+      return;
+    }
 
     // 3) Single active render; PDF.js will throw if we overlap on the same canvas
-    _renderTask = page.render({ canvasContext: ctx, viewport: vp, intent: "display" });
+    _renderTask = page.render(renderParams);
     try {
       await _renderTask.promise;
     } catch (e) {
@@ -265,12 +283,28 @@ export async function rerender() {
       _renderTask = null;
     }
 
+    let textLayerResult = { layer: null, textContent: null };
+    try {
+      textLayerResult = await renderTextLayer({
+        page,
+        pageNum: state.pageNum,
+        viewport: geometry.viewport,
+      });
+    } catch (err) {
+      console.error("[render] Text layer failed", err);
+    }
+
     // Overlay + UI
     if (!state.viewports) state.viewports = {};
-    state.viewports[state.pageNum] = vp;
+    state.viewports[state.pageNum] = geometry.viewport;
 
     syncOverlayToCanvas();
-    renderAnnotationsForPage(state.pageNum, vp);
+    renderAnnotationsForPage(state.pageNum);
+    notifySearchRendered({
+      pageNum: state.pageNum,
+      textLayerDiv: textLayerResult.layer,
+      textContent: textLayerResult.textContent,
+    });
     setActiveThumbnail(state.pageNum);
 
     const pageInput = ui.pageNumEl();
@@ -345,6 +379,12 @@ export async function openFile(file) {
 
   // Defer removing placeholder until after the first render (prevents jump)
   clearOverlay();
+  clearTextLayer();
+  resetSearchState();
+  setTextHighlightMode(false);
+  setOverlayPointerEvents(true);
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) searchInput.value = "";
   getViewerEl()?.classList.remove("is-dragover");
   state.pdfDoc = doc;
   state.loadedPdfData = rawData;
@@ -384,6 +424,12 @@ export async function restoreFile() {
   const { doc } = await loadPDF(restoredFile);
 
   clearOverlay();
+  clearTextLayer();
+  resetSearchState();
+  setTextHighlightMode(false);
+  setOverlayPointerEvents(true);
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) searchInput.value = "";
   state.pdfDoc = doc;
   state.currentDocId = makeDocId(restoredFile);
   ui.pageCountEl().textContent = String(state.pdfDoc.numPages);
@@ -402,6 +448,26 @@ export async function restoreFile() {
 }
 
 /* ---------- Toolbar handlers ---------- */
+
+async function goToMatch(delta) {
+  if (!state.pdfDoc) return null;
+  const match = stepMatch(delta);
+  if (!match) return null;
+  if (match.pageNum !== state.pageNum) {
+    state.pageNum = match.pageNum;
+    await rerender();
+  } else {
+    const textLayerDiv = getTextLayerDiv();
+    const textContent = getCachedTextContent(state.pageNum);
+    notifySearchRendered({
+      pageNum: state.pageNum,
+      textLayerDiv,
+      textContent,
+    });
+  }
+  return match;
+}
+
 export const handlers = {
   onPrev: async () => {
     if (!state.pdfDoc || state.pageNum <= 1) return;
@@ -492,6 +558,9 @@ export const handlers = {
     state.tool = tool || null;
     setActiveToolButton(tool || null);
     setOverlayCursor(tool || null);
+    const isTextHighlight = state.tool === "text-highlight";
+    setTextHighlightMode(isTextHighlight);
+    setOverlayPointerEvents(!isTextHighlight);
     // Enable drag-to-pan only when no tool is active (select mode)
     try { setPannable(!state.tool); } catch {}
   },
@@ -522,6 +591,30 @@ export const handlers = {
     const target = Number(entryId);
     if (!Number.isFinite(target)) return;
     if (jumpToHistory(target)) await rerender();
+  },
+  onSearchQuery: async (rawValue) => {
+    if (!state.pdfDoc) {
+      clearSearch();
+      notifySearchRendered({
+        pageNum: state.pageNum,
+        textLayerDiv: getTextLayerDiv(),
+        textContent: getCachedTextContent(state.pageNum),
+      });
+      return 0;
+    }
+    return setSearchQuery(rawValue);
+  },
+  onSearchNext: () => goToMatch(1),
+  onSearchPrev: () => goToMatch(-1),
+  onSearchClear: () => {
+    clearSearch();
+    const input = document.getElementById("searchInput");
+    if (input) input.value = "";
+    notifySearchRendered({
+      pageNum: state.pageNum,
+      textLayerDiv: getTextLayerDiv(),
+      textContent: getCachedTextContent(state.pageNum),
+    });
   },
   onClearDocument: async () => {
     const hasDocument = Boolean(state.pdfDoc || state.loadedPdfData);

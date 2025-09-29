@@ -11,6 +11,7 @@ import { openFile, handlers, restoreFile, rerender } from "@app/controller";
 import { loadState, initUnloadWarning, scheduleSave, saveStateSync } from "@app/persistence";
 import { historyInit } from "@app/history";
 import { state } from "@app/state";
+import { initTextSelection } from "@app/textSelection";
 
 import {
   initFromStorage as initRenderPrefs,
@@ -105,6 +106,8 @@ const { toolbarHandlers } = bootstrapUI({
   autosaveDelayMs: AUTOSAVE_DELAY_MS,
   lsKeys: LS_KEYS,
 });
+
+initTextSelection();
 
 // Default tool is select (null) → enable drag-to-pan affordance
 try { setPannable(true); } catch {}

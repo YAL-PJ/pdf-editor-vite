@@ -121,20 +121,29 @@ async function generatePdfDocument(rawData) {
 
     for (const ann of anns) {
       if (ann.type === "highlight") {
-        const [nx, ny, nw, nh] = ann.rect;
-        const w = nw * pw;
-        const h = nh * ph;
-        const x = nx * pw;
-        const y = ph - ny * ph - h;
+        const rects = Array.isArray(ann.rects) && ann.rects.length
+          ? ann.rects
+          : ann.rect
+          ? [ann.rect]
+          : [];
 
-        page.drawRectangle({
-          x,
-          y,
-          width: w,
-          height: h,
-          color: rgb(1, 1, 0),
-          opacity: 0.35,
-        });
+        for (const rect of rects) {
+          if (!Array.isArray(rect) || rect.length !== 4) continue;
+          const [nx, ny, nw, nh] = rect;
+          const w = nw * pw;
+          const h = nh * ph;
+          const x = nx * pw;
+          const y = ph - ny * ph - h;
+
+          page.drawRectangle({
+            x,
+            y,
+            width: w,
+            height: h,
+            color: rgb(1, 1, 0),
+            opacity: 0.35,
+          });
+        }
       } else if (ann.type === "note" || ann.type === "text") {
         const text = ann.text?.trim() ? ann.text : "Note";
         const fontSize = ann.fontSize || 12;

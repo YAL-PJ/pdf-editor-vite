@@ -2,9 +2,18 @@
 export function syncOverlayToCanvas() {
   const canvas = document.getElementById("pdfCanvas");
   const layer  = document.getElementById("annoLayer");
-  if (!canvas || !layer) return;
-  layer.style.width  = canvas.clientWidth + "px";
-  layer.style.height = canvas.clientHeight + "px";
+  const text   = document.getElementById("textLayer");
+  if (!canvas) return;
+  const width  = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  if (layer) {
+    layer.style.width  = width + "px";
+    layer.style.height = height + "px";
+  }
+  if (text) {
+    text.style.width  = width + "px";
+    text.style.height = height + "px";
+  }
 }
 window.addEventListener("resize", syncOverlayToCanvas, { passive: true });
 
