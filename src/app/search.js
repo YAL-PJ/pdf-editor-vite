@@ -1,4 +1,5 @@
 import { state } from "@app/state";
+import { getCachedTextContent } from "@pdf/textLayer";
 
 const searchState = {
   query: "",
@@ -47,6 +48,12 @@ function normalizeTextItems(items = []) {
 async function ensurePageText(pageNum) {
   if (searchState.textCache.has(pageNum)) {
     return searchState.textCache.get(pageNum);
+  }
+  const cached = getCachedTextContent(pageNum);
+  if (cached && typeof cached.text === "string") {
+    const entry = { text: cached.text, lower: cached.text.toLowerCase() };
+    searchState.textCache.set(pageNum, entry);
+    return entry;
   }
   if (!state.pdfDoc) return { text: "", lower: "" };
   const page = await state.pdfDoc.getPage(pageNum);
@@ -181,9 +188,12 @@ export function getCurrentMatch() {
   return searchState.matches[searchState.index] || null;
 }
 
-export function notifyPageRendered({ pageNum, textLayerDiv }) {
+export function notifyPageRendered({ pageNum, textLayerDiv, textContent }) {
   if (!pageNum) return;
-  if (textLayerDiv) {
+  if (textContent && typeof textContent.text === "string") {
+    const text = textContent.text;
+    searchState.textCache.set(pageNum, { text, lower: text.toLowerCase() });
+  } else if (textLayerDiv) {
     const text = textLayerDiv.textContent || "";
     searchState.textCache.set(pageNum, { text, lower: text.toLowerCase() });
   }

@@ -21,7 +21,7 @@ import {
 import { updateLayoutOffsets } from "@app/layoutOffsets";
 import { saveState, hasDataToLose, clearSavedState } from "./persistence";
 import { undo, redo, historyInit, jumpToHistory } from "@app/history";
-import { renderTextLayer, clearTextLayer } from "@pdf/textLayer";
+import { clearTextLayer, getCachedTextContent, renderTextLayer } from "@pdf/textLayer";
 import {
   setSearchQuery,
   stepMatch,
@@ -29,6 +29,11 @@ import {
   resetSearchState,
   notifyPageRendered as notifySearchRendered,
 } from "@app/search";
+import {
+  applyViewportToCanvas,
+  createRenderParameters,
+  measureViewport,
+} from "@pdf/pagePipeline";
 import { setTextHighlightMode } from "@app/textSelection";
 
 import "../styles/switch-dialog.css";
@@ -253,27 +258,22 @@ export async function rerender() {
     const container = document.querySelector(".viewer-scroll") || viewer.parentElement || viewer;
 
     // 1) Compute scale: fit-to-width * current zoom (state.scale)
-    const baseVp    = page.getViewport({ scale: 1 });
     const available = Math.max(1, container.clientWidth);
-    const fitScale  = available / baseVp.width;
-    const scale     = fitScale * state.scale;
-    const vp        = page.getViewport({ scale });
+    const geometry = measureViewport({
+      page,
+      containerWidth: available,
+      scale: state.scale,
+    });
 
-    // 2) Set CSS box size *before* rendering (prevents CLS),
-    //    then set backing store for crisp output.
-    const dpr  = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-    const cssW = Math.round(vp.width);
-    const cssH = Math.round(vp.height);
+    applyViewportToCanvas(canvas, geometry);
 
-    canvas.style.width  = `${cssW}px`;  // affects layout
-    canvas.style.height = `${cssH}px`;  // affects layout
-    canvas.width  = cssW * dpr;         // raster only
-    canvas.height = cssH * dpr;         // raster only
-
-    const ctx = canvas.getContext("2d", { alpha: false });
+    const renderParams = createRenderParameters(canvas, geometry.viewport);
+    if (!renderParams?.canvasContext) {
+      return;
+    }
 
     // 3) Single active render; PDF.js will throw if we overlap on the same canvas
-    _renderTask = page.render({ canvasContext: ctx, viewport: vp, intent: "display" });
+    _renderTask = page.render(renderParams);
     try {
       await _renderTask.promise;
     } catch (e) {
@@ -283,20 +283,28 @@ export async function rerender() {
       _renderTask = null;
     }
 
-    let textLayerDiv = null;
+    let textLayerResult = { layer: null, textContent: null };
     try {
-      textLayerDiv = await renderTextLayer({ page, pageNum: state.pageNum, viewport: vp });
+      textLayerResult = await renderTextLayer({
+        page,
+        pageNum: state.pageNum,
+        viewport: geometry.viewport,
+      });
     } catch (err) {
       console.error("[render] Text layer failed", err);
     }
 
     // Overlay + UI
     if (!state.viewports) state.viewports = {};
-    state.viewports[state.pageNum] = vp;
+    state.viewports[state.pageNum] = geometry.viewport;
 
     syncOverlayToCanvas();
-    renderAnnotationsForPage(state.pageNum, vp);
-    notifySearchRendered({ pageNum: state.pageNum, textLayerDiv });
+    renderAnnotationsForPage(state.pageNum);
+    notifySearchRendered({
+      pageNum: state.pageNum,
+      textLayerDiv: textLayerResult.layer,
+      textContent: textLayerResult.textContent,
+    });
     setActiveThumbnail(state.pageNum);
 
     const pageInput = ui.pageNumEl();
@@ -450,7 +458,12 @@ async function goToMatch(delta) {
     await rerender();
   } else {
     const textLayerDiv = getTextLayerDiv();
-    notifySearchRendered({ pageNum: state.pageNum, textLayerDiv });
+    const textContent = getCachedTextContent(state.pageNum);
+    notifySearchRendered({
+      pageNum: state.pageNum,
+      textLayerDiv,
+      textContent,
+    });
   }
   return match;
 }
@@ -582,7 +595,11 @@ export const handlers = {
   onSearchQuery: async (rawValue) => {
     if (!state.pdfDoc) {
       clearSearch();
-      notifySearchRendered({ pageNum: state.pageNum, textLayerDiv: getTextLayerDiv() });
+      notifySearchRendered({
+        pageNum: state.pageNum,
+        textLayerDiv: getTextLayerDiv(),
+        textContent: getCachedTextContent(state.pageNum),
+      });
       return 0;
     }
     return setSearchQuery(rawValue);
@@ -593,7 +610,11 @@ export const handlers = {
     clearSearch();
     const input = document.getElementById("searchInput");
     if (input) input.value = "";
-    notifySearchRendered({ pageNum: state.pageNum, textLayerDiv: getTextLayerDiv() });
+    notifySearchRendered({
+      pageNum: state.pageNum,
+      textLayerDiv: getTextLayerDiv(),
+      textContent: getCachedTextContent(state.pageNum),
+    });
   },
   onClearDocument: async () => {
     const hasDocument = Boolean(state.pdfDoc || state.loadedPdfData);

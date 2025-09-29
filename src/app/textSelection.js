@@ -4,7 +4,7 @@ import { saveState } from "@app/persistence";
 import { renderAnnotationsForPage } from "@ui/overlay";
 import { historyBegin, historyCommit } from "@app/history";
 import { normalizeRect } from "@ui/overlay/highlight";
-import { setTextLayerInteractive } from "@pdf/textLayer";
+import { describeRangeAnchors, setTextLayerInteractive } from "@pdf/textLayer";
 
 let selectionController = null;
 let processTimer = null;
@@ -53,12 +53,31 @@ function processSelection() {
 
   if (!normalizedRects.length) return;
 
+  const anchorInfo = describeRangeAnchors(range);
+  const selectionText = selection.toString();
+
   const bucket = ensureMutablePageAnnotations(state.pageNum);
   const label = `Highlight text (page ${state.pageNum})`;
   historyBegin(label);
-  for (const rect of normalizedRects) {
-    bucket.push({ type: "highlight", rect });
-  }
+
+  const highlight = {
+    type: "highlight",
+    rect: normalizedRects[0],
+    rects: normalizedRects,
+    source: "text",
+    anchors: anchorInfo
+      ? {
+          page: anchorInfo.page,
+          start: { ...anchorInfo.start },
+          end: { ...anchorInfo.end },
+        }
+      : null,
+    text: selectionText,
+    createdAt: Date.now(),
+  };
+
+  bucket.push(highlight);
+
   markAnnotationsChanged();
   saveState();
   historyCommit(label);
