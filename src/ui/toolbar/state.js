@@ -9,16 +9,25 @@ const BUTTON_IDS = [
   "pageNum",
   "zoomIn", "zoomOut",
   "zoomLevel",
-  "toolSelect", "toolHighlight", "toolNote",
+  "toolSelect", "toolHighlight", "toolTextHighlight", "toolNote",
   "toolText", "toolImage",
+  "searchPrev", "searchNext", "searchClear", "searchInput",
 ];
 
-const TOOL_BUTTON_IDS = ["toolSelect","toolHighlight","toolNote","toolText","toolImage"];
+const TOOL_BUTTON_IDS = [
+  "toolSelect",
+  "toolHighlight",
+  "toolTextHighlight",
+  "toolNote",
+  "toolText",
+  "toolImage",
+];
 
 // Map: tool value -> button id (null means the Select/regular cursor tool)
 const TOOL_TO_ID = new Map([
   [null,          "toolSelect"],
   ["highlight",   "toolHighlight"],
+  ["text-highlight", "toolTextHighlight"],
   ["note",        "toolNote"],
   ["text",        "toolText"],
   ["image",       "toolImage"],

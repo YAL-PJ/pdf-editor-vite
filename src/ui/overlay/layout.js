@@ -46,3 +46,9 @@ export function clearOverlay() {
   const layer = document.getElementById("annoLayer");
   if (layer) layer.innerHTML = "";
 }
+
+export function setOverlayPointerEvents(enabled) {
+  const layer = document.getElementById("annoLayer");
+  if (!layer) return;
+  layer.style.pointerEvents = enabled ? "auto" : "none";
+}

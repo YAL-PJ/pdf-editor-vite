@@ -4,6 +4,7 @@ import zoomOutIcon from "../../assets/icons/zoom-out.svg?raw";
 import zoomInIcon from "../../assets/icons/zoom-in.svg?raw";
 import selectIcon from "../../assets/icons/mouse-pointer-click.svg?raw";
 import highlightIcon from "../../assets/icons/highlighter.svg?raw";
+import textHighlightIcon from "../../assets/icons/highlighter-text.svg?raw";
 import noteIcon from "../../assets/icons/sticky-note.svg?raw";
 import textIcon from "../../assets/icons/type.svg?raw";
 import imageIcon from "../../assets/icons/image.svg?raw";
@@ -62,6 +63,28 @@ export function createNavControlsHTML() {
           ${icon(zoomInIcon)}
         </button>
       </div>
+
+      <div class="nav-controls__search" aria-label="Search document">
+        <label class="sr-only" for="searchInput">Search document</label>
+        <input
+          id="searchInput"
+          class="nav-controls__search-input"
+          type="search"
+          placeholder="Find in document"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div class="nav-controls__search-buttons">
+          <button id="searchPrev" type="button" class="nav-btn nav-btn--square" aria-label="Previous search result">
+            ${icon(prevIcon)}
+          </button>
+          <button id="searchNext" type="button" class="nav-btn nav-btn--square" aria-label="Next search result">
+            ${icon(nextIcon)}
+          </button>
+        </div>
+        <span id="searchStatus" class="nav-controls__search-status" aria-live="polite" data-empty="true">0 / 0</span>
+        <button id="searchClear" type="button" class="nav-controls__search-clear" aria-label="Clear search">Clear</button>
+      </div>
     </div>
   `;
 }
@@ -105,6 +128,10 @@ export function createToolbarHTML() {
         <button id="toolHighlight" type="button" class="toolbar-btn" aria-label="Highlight tool" aria-pressed="false">
           ${icon(highlightIcon)}
           <span class="toolbar-btn__label">Highlight</span>
+        </button>
+        <button id="toolTextHighlight" type="button" class="toolbar-btn" aria-label="Text highlight tool" aria-pressed="false">
+          ${icon(textHighlightIcon)}
+          <span class="toolbar-btn__label">Text highlight</span>
         </button>
         <button id="toolNote" type="button" class="toolbar-btn" aria-label="Note tool" aria-pressed="false">
           ${icon(noteIcon)}
