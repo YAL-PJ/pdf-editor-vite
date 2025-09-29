@@ -1,4 +1,4 @@
-// Drag-to-pan inside the scroll container when the select tool is active
+// Drag-to-pan inside the scroll container when the pan tool is active
 import { state } from "@app/state";
 
 let installed = false;
@@ -34,9 +34,9 @@ export function initPanScroll() {
 
     const scrollTarget = document.scrollingElement || document.documentElement || container;
 
-    // Only left button, only when no tool is active (select mode)
+    // Only left button, only when the pan tool is active
     if (e.button !== 0) return;
-    if (state.tool) return;
+    if (state.tool !== "pan") return;
     if (isInteractiveTarget(e.target)) return;
 
     // Affordance + setup
@@ -47,12 +47,14 @@ export function initPanScroll() {
     const previousContainerScrollBehavior = container.style.scrollBehavior || '';
     scrollTarget.style.scrollBehavior = 'auto';
     container.style.scrollBehavior = 'auto';
+    e.preventDefault();
+    e.stopPropagation();
 
     const pid = e.pointerId;
     const startX = e.clientX;
     const startY = e.clientY;
     const startL = scrollTarget.scrollLeft;
-    const startT = container.scrollTop;
+    const startT = scrollTarget.scrollTop;
 
     container.setPointerCapture?.(pid);
 
@@ -61,7 +63,7 @@ export function initPanScroll() {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
       scrollTarget.scrollLeft = startL - dx;
-      container.scrollTop = startT - dy;
+      scrollTarget.scrollTop = startT - dy;
       ev.preventDefault();
     };
 

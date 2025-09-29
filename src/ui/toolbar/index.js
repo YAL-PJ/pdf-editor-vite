@@ -1,7 +1,12 @@
 /**
  * Main toolbar API - combines template + events + state helpers
  */
-import { createToolbarHTML, createNavControlsHTML, createHistoryControlsHTML } from "./template.js";
+import {
+  createToolbarHTML,
+  createNavControlsHTML,
+  createHistoryControlsHTML,
+  createSidebarSearchHTML,
+} from "./template.js";
 import { attachToolbarEvents } from "./events.js";
 export { ui, setToolbarEnabled, setActiveToolButton } from "./state.js";
 
@@ -29,6 +34,13 @@ export function createToolbar(containerId, handlers = {}) {
     historyHost.innerHTML = createHistoryControlsHTML();
   } else {
     console.warn("[toolbar] #historyControls not found; history controls not rendered");
+  }
+
+  const sidebarSearchHost = document.getElementById("sidebarSearch");
+  if (sidebarSearchHost) {
+    sidebarSearchHost.innerHTML = createSidebarSearchHTML();
+  } else {
+    console.warn("[toolbar] #sidebarSearch not found; search panel not rendered");
   }
 
   // 3) Attach events

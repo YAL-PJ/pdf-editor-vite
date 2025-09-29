@@ -177,6 +177,7 @@ export function attachToolbarEvents(handlers = {}) {
     zoomFit: () => requestAnimationFrame(() => safe(handlers.onZoomFit)()),
     toolSelect: () => safe(handlers.onToolChange)(null),
     btnSelect: () => safe(handlers.onToolChange)(null),
+    toolPan: () => safe(handlers.onToolChange)("pan"),
     toolHighlight: () => safe(handlers.onToolChange)("highlight"),
     btnHighlight: () => safe(handlers.onToolChange)("highlight"),
     toolTextHighlight: () => safe(handlers.onToolChange)("text-highlight"),
@@ -225,26 +226,13 @@ export function attachToolbarEvents(handlers = {}) {
     searchClear: () => safe(handlers.onSearchClear)(),
   };
 
-  toolbarEl.addEventListener(
-    "click",
-    (e) => {
-      const btn = e.target.closest("button");
-      if (!btn || !toolbarEl.contains(btn)) return;
-      const fn = clickActions[btn.id];
-      if (!fn) return;
-      e.preventDefault();
-      fn();
-    },
-    { signal }
-  );
-
-  const navControlsEl = document.getElementById("navControls");
-  if (navControlsEl) {
-    navControlsEl.addEventListener(
+  const delegateClicks = (root) => {
+    if (!root) return;
+    root.addEventListener(
       "click",
       (e) => {
         const btn = e.target.closest("button");
-        if (!btn || !navControlsEl.contains(btn)) return;
+        if (!btn || !root.contains(btn)) return;
         const fn = clickActions[btn.id];
         if (!fn) return;
         e.preventDefault();
@@ -252,7 +240,11 @@ export function attachToolbarEvents(handlers = {}) {
       },
       { signal }
     );
-  }
+  };
+
+  delegateClicks(toolbarEl);
+  delegateClicks(document.getElementById("navControls"));
+  delegateClicks(document.getElementById("sidebarSearch"));
 
   const resolveResult = (result, onValue, onError) => {
     const apply = (value) => {
@@ -570,4 +562,3 @@ if (import.meta?.hot) {
     _toolbarEvtController = null;
   });
 }
-

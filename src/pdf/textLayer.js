@@ -120,8 +120,39 @@ function clamp(value, min, max) {
   return value;
 }
 
-function resolveSpan(node, layerRoot) {
+function spanFromRootOffset(layerRoot, offset) {
+  if (!layerRoot) return null;
+  const nodes = layerRoot.childNodes;
+  const total = nodes.length;
+  if (!total) return null;
+
+  let index = Math.max(0, Math.min(offset, total - 1));
+  if (offset >= total) {
+    index = total - 1;
+  }
+
+  const pickCandidate = (start, step) => {
+    let i = start;
+    while (i >= 0 && i < total) {
+      const candidate = nodes[i];
+      if (candidate instanceof HTMLElement && candidate.dataset?.textSpan) {
+        return candidate;
+      }
+      i += step;
+    }
+    return null;
+  };
+
+  let span = pickCandidate(index, -1);
+  if (!span) {
+    span = pickCandidate(index + 1, 1);
+  }
+  return span;
+}
+
+function resolveSpan(node, layerRoot, offset) {
   if (!node) return null;
+  const container = layerRoot?.parentElement || null;
   let current = node;
   if (current.nodeType === Node.TEXT_NODE) {
     current = current.parentElement;
@@ -132,27 +163,150 @@ function resolveSpan(node, layerRoot) {
     }
     current = current.parentElement;
   }
+  if ((node === layerRoot || node === container) && typeof offset === "number") {
+    const span = spanFromRootOffset(layerRoot, offset);
+    if (span) return span;
+  }
   return null;
 }
 
 function buildAnchor(layerRoot, node, offset) {
-  const span = resolveSpan(node, layerRoot);
+  if (!layerRoot || !node) return null;
+
+  let span = resolveSpan(node, layerRoot, offset);
+  if (!span && node instanceof Element && typeof offset === "number") {
+    const children = node.childNodes;
+    const target = children[offset] || children[offset - 1] || null;
+    if (target) {
+      span = resolveSpan(target, layerRoot);
+    }
+  }
+  if (!span && typeof offset === "number") {
+    span = spanFromRootOffset(layerRoot, offset);
+  }
   if (!span) return null;
-  const start = Number(span.dataset.charStart || "0");
-  const end = Number(span.dataset.charEnd || String(start));
+  const anchorElement = span || layerRoot;
+  const start = span
+    ? Number(span.dataset.charStart || "0")
+    : 0;
+  const end = span
+    ? Number(span.dataset.charEnd || String(start))
+    : Number(layerRoot.dataset?.charLength || "0");
   const length = Math.max(0, end - start);
 
-  const base = initialOffsetForNode(node, offset) + sumPrecedingText(node, span);
+  const preceding = sumPrecedingText(node, anchorElement);
+  const base = initialOffsetForNode(node, offset) + preceding;
   const localOffset = clamp(base, 0, length);
   const charOffset = start + localOffset;
 
+  if (!Number.isFinite(charOffset)) {
+    return null;
+  }
+
   return {
-    spanId: span.dataset.textSpan || null,
+    spanId: span?.dataset?.textSpan || null,
     charStart: start,
     charEnd: end,
     charOffset,
     localOffset,
   };
+}
+
+export function getCharOffsetFromPoint(x, y) {
+  const container = getContainer();
+  const root = getLayerRoot();
+  if (!container || !root) return null;
+
+  const overlay = document.getElementById("annoLayer");
+  const previousOverlayPointerEvents = overlay?.style.pointerEvents;
+  if (overlay) overlay.style.pointerEvents = "none";
+  const previousPointerEvents = container.style.pointerEvents;
+  container.style.pointerEvents = "none";
+
+  let range = null;
+  if (typeof document.caretRangeFromPoint === "function") {
+    range = document.caretRangeFromPoint(x, y);
+  } else if (typeof document.caretPositionFromPoint === "function") {
+    const pos = document.caretPositionFromPoint(x, y);
+    if (pos?.offsetNode != null) {
+      range = document.createRange();
+      range.setStart(pos.offsetNode, pos.offset);
+      range.collapse(true);
+    }
+  }
+
+  if (overlay) overlay.style.pointerEvents = previousOverlayPointerEvents || "";
+  container.style.pointerEvents = previousPointerEvents || "";
+
+  if (!range) return null;
+  logSelectEvent("caret-range", {
+    node: range.startContainer?.nodeName || null,
+    offset: range.startOffset ?? null,
+  });
+  const anchor = buildAnchor(root, range.startContainer, range.startOffset);
+  if (!anchor) {
+    logSelectEvent("anchor-span-null", {
+      node: range.startContainer?.nodeName || null,
+      offset: range.startOffset ?? null,
+    });
+    return null;
+  }
+  logSelectEvent("anchor-resolved", {
+    spanId: anchor.spanId,
+    offset: anchor.charOffset,
+  });
+  return anchor.charOffset;
+}
+
+function logSelectEvent(event, detail) {
+  try {
+    window.__logSelectEvent?.(event, detail);
+  } catch {}
+}
+
+export function createRangeFromOffsets(root, start, end) {
+  if (!root || start == null || end == null) return null;
+  const normalizedStart = Math.max(0, Math.min(start, end));
+  const normalizedEnd = Math.max(start, end);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let current = walker.nextNode();
+  let offset = 0;
+  let startNode = null;
+  let startOffset = 0;
+  let endNode = null;
+  let endOffset = 0;
+
+  while (current) {
+    const text = current.textContent || "";
+    const length = text.length;
+    if (!startNode && offset + length >= normalizedStart) {
+      startNode = current;
+      startOffset = Math.max(0, normalizedStart - offset);
+    }
+    if (offset + length >= normalizedEnd) {
+      endNode = current;
+      endOffset = Math.max(0, normalizedEnd - offset);
+      break;
+    }
+    offset += length;
+    current = walker.nextNode();
+  }
+
+  if (!startNode) return null;
+  if (!endNode) {
+    endNode = startNode;
+    endOffset = startNode.textContent?.length || 0;
+  }
+  const range = document.createRange();
+  range.setStart(startNode, Math.min(startOffset, startNode.textContent.length));
+  range.setEnd(endNode, Math.min(endOffset, endNode.textContent.length));
+  return range;
+}
+
+export function createRangeForOffsets(start, end) {
+  const root = getLayerRoot();
+  if (!root) return null;
+  return createRangeFromOffsets(root, start, end);
 }
 
 export function setTextLayerInteractive(enabled) {
@@ -195,6 +349,10 @@ export async function renderTextLayer({ page, pageNum, viewport }) {
   container.style.width = `${width}px`;
   container.style.height = `${height}px`;
 
+  const textViewport = typeof viewport.clone === "function"
+    ? viewport.clone({ dontFlip: true })
+    : viewport;
+
   let entry = builderCache.get(pageNum);
   if (!entry) {
     entry = { builder: null, layer: null, textContent: null };
@@ -205,7 +363,7 @@ export async function renderTextLayer({ page, pageNum, viewport }) {
 
   const textContent = await page.getTextContent({
     includeMarkedContent: true,
-    disableNormalization: true,
+    disableNormalization: false,
   });
 
   if (renderToken !== token) {
@@ -214,7 +372,9 @@ export async function renderTextLayer({ page, pageNum, viewport }) {
 
   const builder = new TextLayerBuilder({
     pdfPage: page,
-    enablePermissions: true,
+    // Ignore restrictive document permissions for local editing/selection.
+    // Some PDFs disallow copying; enabling permissions would block selection.
+    enablePermissions: false,
     onAppend: (div) => {
       if (renderToken !== token) return;
       div.setAttribute("role", "presentation");
@@ -228,10 +388,10 @@ export async function renderTextLayer({ page, pageNum, viewport }) {
 
   try {
     await builder.render({
-      viewport,
+      viewport: textViewport,
       textContentParams: {
         includeMarkedContent: true,
-        disableNormalization: true,
+        disableNormalization: false,
       },
     });
   } catch (err) {
@@ -248,11 +408,57 @@ export async function renderTextLayer({ page, pageNum, viewport }) {
 
   const layerDiv = entry.layer || container.firstElementChild;
   if (layerDiv instanceof HTMLElement) {
+    const cssWidth = Math.max(0, Math.round(textViewport.width));
+    const cssHeight = Math.max(0, Math.round(textViewport.height));
+    layerDiv.style.width = `${cssWidth}px`;
+    layerDiv.style.height = `${cssHeight}px`;
+    layerDiv.style.setProperty("--scale-factor", String(textViewport.scale));
+    layerDiv.style.setProperty("--user-unit", String(textViewport.userUnit || 1));
+    layerDiv.style.setProperty("--total-scale-factor", String(textViewport.scale * (textViewport.userUnit || 1)));
+    layerDiv.style.setProperty("--scale-round-x", "0px");
+    layerDiv.style.setProperty("--scale-round-y", "0px");
+
     entry.meta = annotateTextLayer(layerDiv, pageNum);
     entry.layer = layerDiv;
+    try {
+      const canvas = document.getElementById("pdfCanvas");
+      const canvasRect = canvas?.getBoundingClientRect?.();
+      const layerRect = layerDiv.getBoundingClientRect?.();
+      const scrollLeft = window.scrollX || window.pageXOffset || 0;
+      const scrollTop = window.scrollY || window.pageYOffset || 0;
+      let sampleRect = null;
+      const sampleSpan = layerDiv.querySelector("span");
+      if (sampleSpan instanceof HTMLElement) {
+        const rect = sampleSpan.getBoundingClientRect?.();
+        if (rect) {
+          sampleRect = {
+            x: rect.left + scrollLeft,
+            y: rect.top + scrollTop,
+            w: rect.width,
+            h: rect.height,
+          };
+        }
+      }
+      const payload = {
+        page: pageNum,
+        canvas: canvasRect
+          ? { x: canvasRect.left + scrollLeft, y: canvasRect.top + scrollTop, w: canvasRect.width, h: canvasRect.height }
+          : null,
+        layer: layerRect
+          ? { x: layerRect.left + scrollLeft, y: layerRect.top + scrollTop, w: layerRect.width, h: layerRect.height }
+          : null,
+        sample: sampleRect,
+        transform: layerDiv.style.transform || null,
+      };
+      logSelectEvent("text-layer-metrics", payload);
+    } catch {}
   }
 
   const snapshot = buildTextSnapshot(textContent);
+  const domText = layerDiv?.textContent;
+  if (typeof domText === "string") {
+    snapshot.text = domText;
+  }
   entry.textContent = snapshot;
 
   return { layer: entry.layer, textContent: snapshot };

@@ -3,6 +3,7 @@ import nextIcon from "../../assets/icons/arrow-big-right.svg?raw";
 import zoomOutIcon from "../../assets/icons/zoom-out.svg?raw";
 import zoomInIcon from "../../assets/icons/zoom-in.svg?raw";
 import selectIcon from "../../assets/icons/mouse-pointer-click.svg?raw";
+import panIcon from "../../assets/icons/hand.svg?raw";
 import highlightIcon from "../../assets/icons/highlighter.svg?raw";
 import textHighlightIcon from "../../assets/icons/highlighter-text.svg?raw";
 import noteIcon from "../../assets/icons/sticky-note.svg?raw";
@@ -64,28 +65,36 @@ export function createNavControlsHTML() {
         </button>
       </div>
 
-      <div class="nav-controls__search" aria-label="Search document">
-        <label class="sr-only" for="searchInput">Search document</label>
-        <input
-          id="searchInput"
-          class="nav-controls__search-input"
-          type="search"
-          placeholder="Find in document"
-          autocomplete="off"
-          spellcheck="false"
-        />
-        <div class="nav-controls__search-buttons">
-          <button id="searchPrev" type="button" class="nav-btn nav-btn--square" aria-label="Previous search result">
-            ${icon(prevIcon)}
-          </button>
-          <button id="searchNext" type="button" class="nav-btn nav-btn--square" aria-label="Next search result">
-            ${icon(nextIcon)}
-          </button>
-        </div>
-        <span id="searchStatus" class="nav-controls__search-status" aria-live="polite" data-empty="true">0 / 0</span>
-        <button id="searchClear" type="button" class="nav-controls__search-clear" aria-label="Clear search">Clear</button>
-      </div>
     </div>
+  `;
+}
+
+export function createSidebarSearchHTML() {
+  return `
+    <section class="sidebar-search" aria-label="Document search">
+      <div class="sidebar-search__header">
+        <h2 class="sidebar-search__title">Search</h2>
+        <button id="searchClear" type="button" class="sidebar-search__clear" aria-label="Clear search">Clear</button>
+      </div>
+      <label class="sr-only" for="searchInput">Search document</label>
+      <input
+        id="searchInput"
+        class="sidebar-search__input"
+        type="search"
+        placeholder="Find in document"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <div class="sidebar-search__controls" role="group" aria-label="Search navigation">
+        <button id="searchPrev" type="button" class="sidebar-search__btn" aria-label="Previous search result">
+          ${icon(prevIcon)}
+        </button>
+        <span id="searchStatus" class="sidebar-search__status" aria-live="polite" data-empty="true">0 / 0</span>
+        <button id="searchNext" type="button" class="sidebar-search__btn" aria-label="Next search result">
+          ${icon(nextIcon)}
+        </button>
+      </div>
+    </section>
   `;
 }
 
@@ -124,6 +133,10 @@ export function createToolbarHTML() {
         <button id="toolSelect" type="button" class="toolbar-btn" aria-label="Select tool" aria-pressed="true">
           ${icon(selectIcon)}
           <span class="toolbar-btn__label">Select</span>
+        </button>
+        <button id="toolPan" type="button" class="toolbar-btn" aria-label="Pan tool" aria-pressed="false">
+          ${icon(panIcon)}
+          <span class="toolbar-btn__label">Pan</span>
         </button>
         <button id="toolHighlight" type="button" class="toolbar-btn" aria-label="Highlight tool" aria-pressed="false">
           ${icon(highlightIcon)}

@@ -225,6 +225,150 @@ body:not([data-thumbnails]) .viewer-layout {
   letter-spacing: 0.05em;
 }
 
+.sidebar-search-shell {
+  width: 100%;
+}
+
+.sidebar-search {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  box-shadow: 0 18px 36px -24px rgba(27, 18, 25, 0.45);
+}
+
+.sidebar-search__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sidebar-search__title {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sidebar-search__clear {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar-search__clear:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.32);
+  transform: translateY(-1px);
+}
+
+.sidebar-search__clear:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+.sidebar-search__clear:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sidebar-search__input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font: inherit;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sidebar-search__input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sidebar-search__input:focus-visible {
+  border-color: rgba(255, 255, 255, 0.38);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
+}
+
+.sidebar-search__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar-search__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.sidebar-search__btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.sidebar-search__btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.38);
+  outline-offset: 2px;
+}
+
+.sidebar-search__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sidebar-search__btn .toolbar-btn__icon {
+  width: 18px;
+  height: 18px;
+}
+
+.sidebar-search__status {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+}
+
+.sidebar-search__status[data-empty="true"] {
+  opacity: 0.45;
+}
+
+@media (max-width: 960px) {
+  .sidebar-search {
+    padding: 14px;
+  }
+  .sidebar-search__controls {
+    gap: 8px;
+  }
+}
+
 .thumbnail-pane__toggle {
   display: inline-flex;
   align-items: center;
@@ -997,7 +1141,7 @@ body:not([data-thumbnails]) .viewer-layout {
 /* Cursor by tool (use data-tool attribute) */
 #annoLayer[data-tool="highlight"] { cursor: crosshair; }
 #annoLayer[data-tool="note"]      { cursor: copy; }
-#annoLayer:not([data-tool])       { cursor: grab; }
+#annoLayer[data-tool="pan"]       { cursor: grab; }
 #annoLayer[data-tool="image"]     { cursor: crosshair; }
 #annoLayer[data-tool="text"]      { cursor: text; }
 #annoLayer[data-tool="text-highlight"] { cursor: text; }
@@ -1012,7 +1156,7 @@ body:not([data-thumbnails]) .viewer-layout {
   contain: layout paint;       /* reduces forced reflow scope */
 }
 
-/* Drag-to-pan affordance when the select tool is active */
+/* Drag-to-pan affordance when the Pan tool is active */
 .viewer-scroll.pannable { cursor: grab; }
 .viewer-scroll.panning  { cursor: grabbing; }
 
@@ -1067,8 +1211,6 @@ body:not([data-thumbnails]) .viewer-layout {
 
 /* Optional: instant pressed feedback if aria-pressed is set */
 button[aria-pressed="true"] { outline: 2px solid var(--accent, #5ab); }
-
-
 
 
 

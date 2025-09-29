@@ -1,5 +1,5 @@
 import { state } from "@app/state";
-import { getCachedTextContent } from "@pdf/textLayer";
+import { getCachedTextContent, createRangeFromOffsets } from "@pdf/textLayer";
 
 const searchState = {
   query: "",
@@ -8,6 +8,20 @@ const searchState = {
   textCache: new Map(),
   highlightEls: [],
 };
+
+function selectMatchRange(range) {
+  if (!range || typeof window === "undefined") return;
+  if (state.tool) return; // Only auto-select when the Select tool is active
+  try {
+    const selection = window.getSelection?.();
+    if (!selection) return;
+    selection.removeAllRanges?.();
+    const selectionRange = range.cloneRange ? range.cloneRange() : range;
+    selection.addRange?.(selectionRange);
+  } catch (err) {
+    // Ignore selection failures (e.g., if the document is unfocused)
+  }
+}
 
 function getStatusEl() {
   return document.getElementById("searchStatus");
@@ -49,9 +63,9 @@ async function ensurePageText(pageNum) {
   if (searchState.textCache.has(pageNum)) {
     return searchState.textCache.get(pageNum);
   }
-  const cached = getCachedTextContent(pageNum);
-  if (cached && typeof cached.text === "string") {
-    const entry = { text: cached.text, lower: cached.text.toLowerCase() };
+  const cachedEntry = getCachedTextContent(pageNum);
+  if (cachedEntry && typeof cachedEntry.text === "string") {
+    const entry = { text: cachedEntry.text, lower: cachedEntry.text.toLowerCase() };
     searchState.textCache.set(pageNum, entry);
     return entry;
   }
@@ -60,42 +74,9 @@ async function ensurePageText(pageNum) {
   const textContent = await page.getTextContent({ includeMarkedContent: true });
   const text = normalizeTextItems(textContent.items);
   const lower = text.toLowerCase();
-  const cached = { text, lower };
-  searchState.textCache.set(pageNum, cached);
-  return cached;
-}
-
-function createRangeFromOffsets(root, start, end) {
-  if (!root || start < 0 || end <= start) return null;
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let current = walker.nextNode();
-  let offset = 0;
-  let startNode = null;
-  let startOffset = 0;
-  let endNode = null;
-  let endOffset = 0;
-
-  while (current) {
-    const text = current.textContent || "";
-    const length = text.length;
-    if (!startNode && offset + length >= start) {
-      startNode = current;
-      startOffset = Math.max(0, start - offset);
-    }
-    if (startNode && offset + length >= end) {
-      endNode = current;
-      endOffset = Math.max(0, end - offset);
-      break;
-    }
-    offset += length;
-    current = walker.nextNode();
-  }
-
-  if (!startNode || !endNode) return null;
-  const range = document.createRange();
-  range.setStart(startNode, Math.min(startOffset, startNode.textContent.length));
-  range.setEnd(endNode, Math.min(endOffset, endNode.textContent.length));
-  return range;
+  const entry = { text, lower };
+  searchState.textCache.set(pageNum, entry);
+  return entry;
 }
 
 function highlightMatch(match, textLayerDiv) {
@@ -105,9 +86,11 @@ function highlightMatch(match, textLayerDiv) {
   const layerRect = container.getBoundingClientRect();
   const range = createRangeFromOffsets(textLayerDiv, match.start, match.end);
   if (!range) return;
+  selectMatchRange(range);
   const rects = Array.from(range.getClientRects());
   if (!rects.length) return;
   const frag = document.createDocumentFragment();
+  let firstRect = null;
   for (const rect of rects) {
     if (rect.width < 1 || rect.height < 1) continue;
     const el = document.createElement("div");
@@ -118,8 +101,25 @@ function highlightMatch(match, textLayerDiv) {
     el.style.height = `${rect.height}px`;
     frag.appendChild(el);
     searchState.highlightEls.push(el);
+    if (!firstRect) firstRect = rect;
   }
   container.appendChild(frag);
+
+  if (firstRect) {
+    const scrollHost = document.querySelector(".viewer-scroll") || document.scrollingElement;
+    if (scrollHost) {
+      const hostRect = scrollHost.getBoundingClientRect();
+      const currentTop = scrollHost.scrollTop || 0;
+      const desiredTop = currentTop + (firstRect.top - hostRect.top);
+      const offset = 120;
+      const targetTop = Math.max(desiredTop - offset, 0);
+      try {
+        scrollHost.scrollTo({ top: targetTop, behavior: "smooth" });
+      } catch {
+        scrollHost.scrollTop = targetTop;
+      }
+    }
+  }
 }
 
 export async function setSearchQuery(query) {
@@ -190,11 +190,12 @@ export function getCurrentMatch() {
 
 export function notifyPageRendered({ pageNum, textLayerDiv, textContent }) {
   if (!pageNum) return;
-  if (textContent && typeof textContent.text === "string") {
-    const text = textContent.text;
+  const domText = textLayerDiv?.textContent;
+  if (typeof domText === "string") {
+    const text = domText;
     searchState.textCache.set(pageNum, { text, lower: text.toLowerCase() });
-  } else if (textLayerDiv) {
-    const text = textLayerDiv.textContent || "";
+  } else if (textContent && typeof textContent.text === "string") {
+    const text = textContent.text;
     searchState.textCache.set(pageNum, { text, lower: text.toLowerCase() });
   }
   const match = getCurrentMatch();
@@ -209,4 +210,3 @@ export function notifyPageRendered({ pageNum, textLayerDiv, textContent }) {
 export function getSearchQuery() {
   return searchState.query;
 }
-
