@@ -9,13 +9,14 @@ const BUTTON_IDS = [
   "pageNum",
   "zoomIn", "zoomOut",
   "zoomLevel",
-  "toolSelect", "toolHighlight", "toolTextHighlight", "toolNote",
+  "toolSelect", "toolPan", "toolHighlight", "toolTextHighlight", "toolNote",
   "toolText", "toolImage",
   "searchPrev", "searchNext", "searchClear", "searchInput",
 ];
 
 const TOOL_BUTTON_IDS = [
   "toolSelect",
+  "toolPan",
   "toolHighlight",
   "toolTextHighlight",
   "toolNote",
@@ -26,6 +27,7 @@ const TOOL_BUTTON_IDS = [
 // Map: tool value -> button id (null means the Select/regular cursor tool)
 const TOOL_TO_ID = new Map([
   [null,          "toolSelect"],
+  ["pan",        "toolPan"],
   ["highlight",   "toolHighlight"],
   ["text-highlight", "toolTextHighlight"],
   ["note",        "toolNote"],
@@ -66,5 +68,4 @@ export function setActiveToolButton(tool) {
     el.setAttribute("aria-pressed", "true");
   }
 }
-
 

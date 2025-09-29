@@ -10,7 +10,7 @@ export const state = {
   pageNum: 1,
   scale: 1.0,
 
-  // "highlight" | "note" | "text" | "image" | null
+  // "pan" | "highlight" | "text-highlight" | "note" | "text" | "image" | null
   tool: null,
 
   // { [pageNum: number]: Annotation[] }

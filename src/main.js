@@ -11,7 +11,7 @@ import { openFile, handlers, restoreFile, rerender } from "@app/controller";
 import { loadState, initUnloadWarning, scheduleSave, saveStateSync } from "@app/persistence";
 import { historyInit } from "@app/history";
 import { state } from "@app/state";
-import { initTextSelection } from "@app/textSelection";
+import { initTextSelection, setCopySelectionEnabled } from "@app/textSelection";
 
 import {
   initFromStorage as initRenderPrefs,
@@ -108,9 +108,10 @@ const { toolbarHandlers } = bootstrapUI({
 });
 
 initTextSelection();
+setCopySelectionEnabled(true);
 
-// Default tool is select (null) → enable drag-to-pan affordance
-try { setPannable(true); } catch {}
+// Default tool is select (null); pan affordance is controlled by the Pan tool
+try { setPannable(false); } catch {}
 
 /* ---------- Refit PDF when viewer container resizes ---------- */
 initFitObserver(

@@ -34,7 +34,7 @@ import {
   createRenderParameters,
   measureViewport,
 } from "@pdf/pagePipeline";
-import { setTextHighlightMode } from "@app/textSelection";
+import { setTextHighlightMode, setCopySelectionEnabled } from "@app/textSelection";
 
 import "../styles/switch-dialog.css";
 
@@ -555,14 +555,20 @@ export const handlers = {
     return finalText;
   },
   onToolChange: (tool) => {
-    state.tool = tool || null;
-    setActiveToolButton(tool || null);
-    setOverlayCursor(tool || null);
-    const isTextHighlight = state.tool === "text-highlight";
+    const normalizedTool = tool || null;
+    state.tool = normalizedTool;
+    setActiveToolButton(normalizedTool);
+    setOverlayCursor(normalizedTool);
+    const isTextHighlight = normalizedTool === "text-highlight";
+    const isPan = normalizedTool === "pan";
+    const isSelectTool = !normalizedTool;
+    setCopySelectionEnabled(isSelectTool);
     setTextHighlightMode(isTextHighlight);
-    setOverlayPointerEvents(!isTextHighlight);
-    // Enable drag-to-pan only when no tool is active (select mode)
-    try { setPannable(!state.tool); } catch {}
+    setOverlayPointerEvents(!(isTextHighlight || isSelectTool));
+    try { setPannable(isPan); } catch {}
+    if (normalizedTool && normalizedTool !== "text-highlight" && typeof window !== "undefined") {
+      try { window.getSelection?.()?.removeAllRanges?.(); } catch {}
+    }
   },
   onPickImage: () => {
     const picker = document.getElementById("imagePickerInput");
